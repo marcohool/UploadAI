@@ -1,22 +1,17 @@
 from openai import OpenAI
+from dotenv import load_dotenv
+from pathlib import Path
+import os
 
+dotenv_path = Path('.env')
+load_dotenv(dotenv_path=dotenv_path)
 
 client = OpenAI(
     # This is the default and can be omitted
-    api_key="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",
+    api_key=os.getenv('OPENAI_KEY'),
 )
 
-# chat_completion = client.chat.completions.create(
-#     model="gpt-3.5-turbo",
-#     temperature=0.8,
-#     messages=[
-#         {
-#             "role": "user",
-#             "content": "Say this is a test",
-#         }
-#     ],
-# )
-# print(chat_completion.choices[0].message)
+
 
 response = client.images.generate(
     model="dall-e-3",
