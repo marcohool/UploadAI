@@ -1,0 +1,6 @@
+openai
+python-dotenv
+Pillow
+schedule
+geopy
+instagrapi
