@@ -6,7 +6,9 @@ from instagrapi import Client
 from instagrapi.types import Location
 from pathlib import Path
 from PIL import Image
+import schedule
 import random
+import time
 from geopy.geocoders import Nominatim
 
 
@@ -80,7 +82,7 @@ def getCountry(fileName):
 def main():
     randomCountry = getCountry("countryList.txt")
 
-    dallePrompt = getTextResponse(client, 1, f"Design a prompt for DALL-E 3 to produce an attention-grabbing realistic image of the beauty of {randomCountry} using a 35mm lens. Please include specific details such as the desired setting, objects, colors, mood, and unique elements to be incorporated. Additionally, consider the mood and atmosphere you want to convey, and provide descriptive adjectives to guide the image creation. Specify the desired perspective and composition, as well as the preferred lighting and time of day. If applicable, indicate any desired action or movement within the image. Aim for a balance between providing sufficient detail and conciseness in your prompt. Feel free to employ analogies or comparisons to further clarify your vision. Lastly, indicate any desired styles or themes, and outline an iterative approach for refining the image. Return nothing but this prompt, no other text.")
+    dallePrompt = getTextResponse(client, 2, f"Design a prompt for DALL-E 3 to produce an attention-grabbing realistic image of the beauty of {randomCountry} using a 35mm lens. Please include specific details such as the desired setting, objects, colors, mood, and unique elements to be incorporated. Additionally, consider the mood and atmosphere you want to convey, and provide descriptive adjectives to guide the image creation. Specify the desired perspective and composition, as well as the preferred lighting and time of day. If applicable, indicate any desired action or movement within the image. Aim for a balance between providing sufficient detail and conciseness in your prompt. Feel free to employ analogies or comparisons to further clarify your vision. Lastly, indicate any desired styles or themes, and outline an iterative approach for refining the image. Return nothing but this prompt, no other text.")
     print("\nDalle prompt generated -> ", dallePrompt)
 
     # Generate image
@@ -92,11 +94,16 @@ def main():
 
     # Get photo caption
     caption = getTextResponse(
-        client, 1, f"Generate a 1 or 2 sentence caption for this image description - describing it briefly. After that include two new lines and list a total of 10-15 hashtags for social media. Please reply with this caption and nothing else \n'{dallePrompt}'")
+        client, 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly. After that list a total of 10-15 hashtags for social media. Please reply with this caption and nothing else \n'{dallePrompt}'")
     print("Caption prompt generated -> ", caption)
 
     uploadPhoto("dalleImage.jpg", caption, randomCountry)
 
 
 if __name__ == "__main__":
-    main()
+    schedule.every().day.at("07:00").do(main)
+    schedule.every().day.at("19:00").do(main)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
