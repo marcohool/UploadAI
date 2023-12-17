@@ -3,15 +3,18 @@ import urllib.request
 from openai import OpenAI
 from dotenv import load_dotenv
 from instagrapi.types import Location
+from instagrapi.exceptions import LoginRequired
 from instagrapi import Client
 from pathlib import Path
 from PIL import Image
 import schedule
+import logging
 import random
 import time
 from geopy.geocoders import Nominatim
 import json
 
+logger = logging.getLogger()
 
 dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
@@ -19,6 +22,49 @@ load_dotenv(dotenv_path=dotenv_path)
 client = OpenAI(
     api_key=os.getenv('OPENAI_KEY'),
 )
+
+
+def loginUser():
+    """
+    Attempts to login to Instagram using either the provided session information
+    or the provided username and password.
+    """
+    cl = Client()
+    session = cl.load_settings("session.json")
+
+    if session:
+        try:
+            cl.set_settings(session)
+            cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD'))
+
+            # Check if session is valid
+            try:
+                cl.get_timeline_feed()
+            except LoginRequired:
+                logger.info(
+                    "Session invalid -> logging in with username and password")
+
+                old_session = cl.get_settings()
+
+                # Use the same device UUID
+                cl.set_settings({})
+                cl.set_settings(old_session["uuids"])
+
+                cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD'))
+
+            return cl
+        except Exception as e:
+            logger.info("Couldn't login user using session information: ", e)
+
+    try:
+        logger.info(
+            f"Attempting to login with username and password\n\tUsername: {os.getenv('IG_UNAME')}")
+        if cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD')):
+            return cl
+    except Exception as e:
+        logger.info("Couldn't login user with username and password: ", e)
+
+    raise Exception("Couldn't login user with either password or session")
 
 
 def getTextResponse(client, model, temperature, inputText):
@@ -49,8 +95,7 @@ def getImageResponse(client, inputText):
 
 
 def uploadPhoto(image1Path, caption, locationName):
-    cl = Client()
-    cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD'))
+    cl = loginUser()
 
     # Get location of country
     geolocator = Nominatim(user_agent="get_lat_lng")
