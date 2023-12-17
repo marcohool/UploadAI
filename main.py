@@ -6,11 +6,8 @@ from instagrapi.types import Location
 from instagrapi.exceptions import LoginRequired
 from instagrapi import Client
 from pathlib import Path
-from PIL import Image
-import schedule
 import logging
 import random
-import time
 from geopy.geocoders import Nominatim
 import json
 
@@ -165,10 +162,11 @@ def main():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("07:00").do(main)
-    schedule.every().day.at("17:00").do(main)
-    schedule.every().day.at("22:00").do(main)
+    # schedule.every().day.at("07:00").do(main)
+    # schedule.every().day.at("17:00").do(main)
+    # schedule.every().day.at("22:00").do(main)
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)
+    main()
