@@ -6,7 +6,9 @@ from instagrapi.types import Location
 from instagrapi.exceptions import LoginRequired
 from instagrapi import Client
 from pathlib import Path
+import schedule
 import logging
+import time
 import random
 from geopy.geocoders import Nominatim
 import json
@@ -27,7 +29,7 @@ def loginUser():
     or the provided username and password.
     """
     cl = Client()
-    session = cl.load_settings("session.json")
+    session = cl.load_settings("data/session.json")
 
     if session:
         try:
@@ -49,6 +51,7 @@ def loginUser():
 
                 cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD'))
 
+            cl.dump_settings("data/session.json")
             return cl
         except Exception as e:
             logger.info("Couldn't login user using session information: ", e)
@@ -57,6 +60,7 @@ def loginUser():
         logger.info(
             f"Attempting to login with username and password\n\tUsername: {os.getenv('IG_UNAME')}")
         if cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD')):
+            cl.dump_settings("data/session.json")
             return cl
     except Exception as e:
         logger.info("Couldn't login user with username and password: ", e)
@@ -153,7 +157,7 @@ def main():
     # Add space between hashtags and caption
     hash_index = caption.find('#')
     if hash_index != -1:
-        caption = caption[:hash_index] + "\n" + caption[hash_index:]
+        caption = caption[:hash_index] + "\n\n" + caption[hash_index:]
 
     print("Caption prompt generated -> ", caption)
 
@@ -162,11 +166,10 @@ def main():
 
 
 if __name__ == "__main__":
-    # schedule.every().day.at("07:00").do(main)
-    # schedule.every().day.at("17:00").do(main)
-    # schedule.every().day.at("22:00").do(main)
+    schedule.every().day.at("07:00").do(main)
+    schedule.every().day.at("17:00").do(main)
+    schedule.every().day.at("22:00").do(main)
 
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
-    main()
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
