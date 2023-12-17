@@ -152,7 +152,7 @@ def main():
 
     # Get photo caption
     caption = getTextResponse(
-        client, "gpt-3.5-turbo", 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly, along with a list of total 10-15 hashtags for social media use. Please reply with this caption and nothing else: '{dallePrompt}'")
+        client, "gpt-3.5-turbo", 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly, along with a list of total 20 hashtags for social media use. Please reply with this caption and nothing else: '{dallePrompt}'")
 
     # Add space between hashtags and caption
     hash_index = caption.find('#')
