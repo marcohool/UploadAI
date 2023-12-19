@@ -155,9 +155,10 @@ def main():
         client, "gpt-3.5-turbo", 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly, along with a list of total 20 hashtags for social media use. Please reply with this caption and nothing else: '{dallePrompt}'")
 
     # Add space between hashtags and caption
+    caption.replace('"', '')
     hash_index = caption.find('#')
     if hash_index != -1:
-        caption = caption[:hash_index] + "\n\n" + caption[hash_index:]
+        caption = '"' + caption[:hash_index] + '"\n\n' + caption[hash_index:]
 
     print("Caption prompt generated -> ", caption)
 
