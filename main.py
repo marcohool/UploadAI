@@ -136,35 +136,40 @@ def main():
     print("\nDalle JSON response -> ", dallePrompt)
 
     # Parse JSON response
-    jsonPrompt = json.loads(dallePrompt)
+    try:
+        jsonPrompt = json.loads(dallePrompt)
 
-    locationGenerted = jsonPrompt["chosenLocation"]
-    dallePrompt = jsonPrompt["promptValue"]
+        locationGenerted = jsonPrompt["chosenLocation"]
+        dallePrompt = jsonPrompt["promptValue"]
 
-    print("\nDalle location generated -> ", locationGenerted)
-    print("\nDalle prompt generated -> ", dallePrompt)
+        print("\nDalle location generated -> ", locationGenerted)
+        print("\nDalle prompt generated -> ", dallePrompt)
 
-    # Generate image
-    generatedImageLink = getImageResponse(client, dallePrompt)
-    print("\nImage generated -> ", generatedImageLink)
+        # Generate image
+        generatedImageLink = getImageResponse(client, dallePrompt)
+        print("\nImage generated -> ", generatedImageLink)
 
-    # Download image
-    urllib.request.urlretrieve(generatedImageLink, "assets/dalleImage.jpg")
+        # Download image
+        urllib.request.urlretrieve(generatedImageLink, "assets/dalleImage.jpg")
 
-    # Get photo caption
-    caption = getTextResponse(
-        client, "gpt-3.5-turbo", 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly, along with a list of total 20 hashtags for social media use. Please reply with this caption and nothing else: '{dallePrompt}'")
+        # Get photo caption
+        caption = getTextResponse(
+            client, "gpt-3.5-turbo", 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly, along with a list of total 20 hashtags for social media use. Please reply with this caption and nothing else: '{dallePrompt}'")
 
-    # Add space between hashtags and caption
-    caption.replace('"', '')
-    hash_index = caption.find('#')
-    if hash_index != -1:
-        caption = '"' + caption[:hash_index] + '"\n\n' + caption[hash_index:]
+        # Add space between hashtags and caption
+        caption.replace('"', '')
+        hash_index = caption.find('#')
+        if hash_index != -1:
+            caption = '"' + caption[:hash_index] + \
+                '"\n\n' + caption[hash_index:]
 
-    print("Caption prompt generated -> ", caption)
+        print("Caption prompt generated -> ", caption)
 
-    uploadPhoto("assets/dalleImage.jpg", caption,
-                f"{locationGenerted}, {randomCountry}")
+        uploadPhoto("assets/dalleImage.jpg", caption,
+                    f"{locationGenerted}, {randomCountry}")
+
+    except Exception as e:
+        logger.error("Couldn't perform main: ", e)
 
 
 if __name__ == "__main__":
