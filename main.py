@@ -133,6 +133,7 @@ def main():
     print("Got country -> ", randomCountry)
 
     dallePrompt = getTextResponse(client, "gpt-3.5-turbo", 1, f"Design a prompt for DALL-E 3 to produce an attention-grabbing realistic image of the beauty of {randomCountry}. Pick a place in {randomCountry} with a name and base your image there. Please include specific details such as the desired setting, objects, colors, mood, and unique elements to be incorporated. Additionally, consider the mood and atmosphere you want to convey, and provide descriptive adjectives to guide the image creation. Specify the desired perspective and composition, as well as the preferred lighting and time of day. If applicable, indicate any desired action or movement within the image. Aim for a balance between providing sufficient detail and conciseness in your prompt. Feel free to employ analogies or comparisons to further clarify your vision. Lastly, indicate any desired styles or themes, and outline an iterative approach for refining the image. Return nothing but this prompt, no other text. The first word of your response should contain just the name of the place you are drawing as a location (town, city) within {randomCountry}, nothing else. Respond in a json format, with the first field 'chosenLocation' and second 'promptValue'")
+    print("\nDalle JSON response -> ", dallePrompt)
 
     # Parse JSON response
     jsonPrompt = json.loads(dallePrompt)

@@ -1,100 +1,177 @@
-Italy
-New Zealand
-Norway
-Switzerland
-Canada
-Greece
-Japan
-Iceland
-France
-Australia
-Scotland
-Spain
-Croatia
-Portugal
-Costa Rica
-Fiji
-Thailand
+Afghanistan
+Albania
+Algeria
+Andorra
+Angola
+Antigua and Barbuda
 Argentina
-Chile
-Peru
-Brazil
-South Africa
-India
-Nepal
+Armenia
+Australia
+Austria
+Azerbaijan
+Bahamas
+Bahrain
+Bangladesh
+Barbados
+Belarus
+Belgium
+Belize
 Bhutan
-Vietnam
+Bolivia
+Bosnia and Herzegovina
+Botswana
+Brazil
+Bulgaria
+Burkina Faso
+Côte d'Ivoire
+Cambodia
+Cameroon
+Canada
+Central African Republic
+Chad
+Chile
+China
+Colombia
+Costa Rica
+Croatia
+Cuba
+Cyprus
+Czech Republic
+Democratic Republic of the Congo
+Denmark
+Dominican Republic
+Ecuador
+Egypt
+El Salvador
+Estonia
+Eswatini
+Ethiopia
+Fiji
+Finland
+France
+Gambia
+Georgia
+Germany
+Ghana
+Greece
+Grenada
+Guatemala
+Guinea
+Haiti
+Holy See
+Honduras
+Hungary
+Iceland
+India
 Indonesia
+Iran
+Iraq
+Ireland
+Israel
+Italy
+Jamaica
+Japan
+Jordan
+Kazakhstan
+Kenya
+Kiribati
+Kuwait
+Kyrgyzstan
+Laos
+Latvia
+Lebanon
+Lesotho
+Liberia
+Libya
+Liechtenstein
+Lithuania
+Luxembourg
+Madagascar
+Malawi
 Malaysia
 Maldives
-Seychelles
-Bulgaria
-Morocco
-Turkey
-Ireland
-Austria
-Sweden
-Finland
-Denmark
-Scotland
-United States
-China
-Egypt
-Jordan
+Mali
+Malta
+Marshall Islands
+Mauritania
+Mauritius
 Mexico
-Bolivia
-Ecuador
-Colombia
-Venezuela
-Sri Lanka
-Cambodia
-Israel
-Peru
-Switzerland
-Austria
-Croatia
-Spain
-South Korea
-New Zealand
-Greece
-Thailand
-Portugal
-Canada
-Finland
-Maldives
-Seychelles
-Fiji
-Vietnam
-Argentina
-Chile
-Norway
-Iceland
-Scotland
-Brazil
-Kenya
-Tanzania
-South Africa
+Micronesia
+Moldova
+Monaco
+Mongolia
+Montenegro
 Morocco
-Egypt
-Jordan
-Mexico
-Italy
-Sweden
-Denmark
-Indonesia
-Ireland
-United States
-China
-India
-Bhutan
+Mozambique
+Myanmar
+Namibia
+Nauru
 Nepal
-Sri Lanka
-Cambodia
-Portugal
-Greece
-Japan
+Netherlands
 New Zealand
+Nicaragua
+Niger
+Nigeria
+North Korea
+North Macedonia
 Norway
+Oman
+Pakistan
+Palau
+Panama
+Papua New Guinea
+Paraguay
+Peru
+Philippines
+Poland
+Portugal
+Qatar
+Romania
+Russia
+Rwanda
+Saint Lucia
+Saint Vincent and the Grenadines
+Samoa
+San Marino
+Saudi Arabia
+Senegal
+Serbia
+Seychelles
+Sierra Leone
+Singapore
+Slovakia
+Slovenia
+Solomon Islands
+Somalia
+South Africa
+South Korea
+South Sudan
+Spain
+Sri Lanka
+Sudan
+Sweden
 Switzerland
-Canada
-France
+Syria
+Tajikistan
+Tanzania
+Thailand
+Togo
+Tonga
+Trinidad and Tobago
+Tunisia
+Turkey
+Turkmenistan
+Tuvalu
+Uganda
+Ukraine
+United Arab Emirates
+United Kingdom
+United States of America
+Uruguay
+Uzbekistan
+Vanuatu
+Venezuela
+Vietnam
+Yemen
+Zambia
+Zimbabwe
