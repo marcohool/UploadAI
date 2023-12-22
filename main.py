@@ -137,8 +137,8 @@ def main():
 
     # Parse JSON response
     try:
-        dallePromptJson = dallePrompt.replace(
-            "```json\n", "").replace("\n```", "").strip()
+        dallePromptJson = dallePrompt.strip(
+            '```json').replace("\n", "").replace("```", "")
         print("\nDalle prompt to JSON -> ", dallePromptJson)
         print("\nLoading JSON now\n")
         jsonPrompt = json.loads(dallePromptJson)
@@ -161,11 +161,10 @@ def main():
             client, "gpt-4-1106-preview", 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly, along with a list of total 20 hashtags for social media use. Please reply with this caption and nothing else: '{dallePrompt}'")
 
         # Add space between hashtags and caption
-        # caption.replace('"', '')
-        # hash_index = caption.find('#')
-        # if hash_index != -1:
-        #     caption = '"' + caption[:hash_index] + \
-        #         '"\n\n' + caption[hash_index:]
+        hash_index = caption.find('#')
+        if hash_index != -1:
+            caption = '"' + caption[:hash_index] + \
+                '"\n\n' + caption[hash_index:]
 
         print("Caption prompt generated -> ", caption)
 
