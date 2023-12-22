@@ -140,7 +140,7 @@ def main():
         dallePromptJson = dallePrompt.replace(
             "```json\n", "").replace("\n```", "").strip()
         print("\nDalle prompt to JSON -> ", dallePromptJson)
-
+        print("\nLoading JSON now\n")
         jsonPrompt = json.loads(dallePromptJson)
 
         locationGenerted = jsonPrompt["chosenLocation"]
