@@ -67,7 +67,6 @@ Indonesia
 Iran
 Iraq
 Ireland
-Israel
 Italy
 Jamaica
 Japan
@@ -127,7 +126,6 @@ Poland
 Portugal
 Qatar
 Romania
-Russia
 Rwanda
 Saint Lucia
 Saint Vincent and the Grenadines
@@ -163,7 +161,6 @@ Turkey
 Turkmenistan
 Tuvalu
 Uganda
-Ukraine
 United Arab Emirates
 United Kingdom
 United States of America
