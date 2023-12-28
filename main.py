@@ -163,7 +163,7 @@ def main():
         # Add space between hashtags and caption
         hash_index = caption.find('#')
         if hash_index != -1:
-            hash_index += 1
+            hash_index -= 1
             caption = '"' + caption[:hash_index] + \
                 '"\n\n' + caption[hash_index:]
 
