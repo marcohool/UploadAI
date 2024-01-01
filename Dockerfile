@@ -19,4 +19,4 @@ ENV IG_UNAME your_instagram_username
 ENV IG_PWD your_instagram_password
 
 # Run the script
-CMD ["python", "./main.py"]
+CMD ["python", "./src/main.py"]
