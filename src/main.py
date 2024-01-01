@@ -6,6 +6,8 @@ from services.instragram_integration import upload_photo
 from services.openai_generation import get_text_response
 from utils.data_helpers import get_random_country, handle_image_generation
 from utils.json_processing import process_dalle_prompt_request
+import schedule
+import time
 
 dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
@@ -39,35 +41,34 @@ def main():
 
 
 if __name__ == "__main__":
-    # # Monday
-    # schedule.every().monday.at("09:00").do(main)
-    # schedule.every().monday.at("17:00").do(main)
+    # Monday
+    schedule.every().monday.at("09:00").do(main)
+    schedule.every().monday.at("17:00").do(main)
 
-    # # Tuesday
-    # schedule.every().tuesday.at("09:00").do(main)
-    # schedule.every().tuesday.at("17:00").do(main)
+    # Tuesday
+    schedule.every().tuesday.at("09:00").do(main)
+    schedule.every().tuesday.at("17:00").do(main)
 
-    # # Wednesday
-    # schedule.every().wednesday.at("05:00").do(main)
-    # schedule.every().wednesday.at("11:00").do(main)
-    # schedule.every().wednesday.at("17:00").do(main)
+    # Wednesday
+    schedule.every().wednesday.at("05:00").do(main)
+    schedule.every().wednesday.at("11:00").do(main)
+    schedule.every().wednesday.at("17:00").do(main)
 
-    # # Thursday
-    # schedule.every().thursday.at("12:00").do(main)
-    # schedule.every().thursday.at("18:00").do(main)
+    # Thursday
+    schedule.every().thursday.at("12:00").do(main)
+    schedule.every().thursday.at("18:00").do(main)
 
-    # # Friday
-    # schedule.every().friday.at("09:00").do(main)
-    # schedule.every().friday.at("17:00").do(main)
+    # Friday
+    schedule.every().friday.at("09:00").do(main)
+    schedule.every().friday.at("17:00").do(main)
 
-    # # Saturday
-    # schedule.every().saturday.at("10:00").do(main)
+    # Saturday
+    schedule.every().saturday.at("10:00").do(main)
 
-    # # Sunday
-    # schedule.every().sunday.at("09:00").do(main)
-    # schedule.every().sunday.at("18:00").do(main)
+    # Sunday
+    schedule.every().sunday.at("09:00").do(main)
+    schedule.every().sunday.at("18:00").do(main)
 
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
-    main()
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
