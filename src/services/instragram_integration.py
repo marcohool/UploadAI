@@ -56,6 +56,7 @@ def upload_photo(imagePath, caption, location):
     # Get location of country
     geolocator = Nominatim(user_agent="get_lat_lng")
     location = geolocator.geocode(location)
+    print(f"Location generated = {location}")
 
     if location:
         lat_lng = [location.latitude, location.longitude]
