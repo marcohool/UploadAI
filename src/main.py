@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     # Wednesday
     schedule.every().wednesday.at("05:00").do(main)
-    schedule.every().wednesday.at("11:00").do(main)
+    # schedule.every().wednesday.at("11:00").do(main)
     schedule.every().wednesday.at("17:00").do(main)
 
     # Thursday
