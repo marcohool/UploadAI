@@ -73,3 +73,5 @@ def upload_photo(imagePath, caption, location):
         )
 
     print(f"Location photo uploaded with = {location}")
+
+    location = None
