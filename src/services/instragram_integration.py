@@ -54,17 +54,16 @@ def upload_photo(imagePath, caption, location):
     cl = login_user()
 
     # Get location of country
-    geolocator = Nominatim(user_agent="get_lat_lng")
-    location = geolocator.geocode(location)
+    # geolocator = Nominatim(user_agent="get_lat_lng")
+    location = cl.fbsearch_places(location)[2]
     print(f"Location generated = {location}")
 
     if location:
-        lat_lng = [location.latitude, location.longitude]
+        # lat_lng = [location.latitude, location.longitude]
         cl.photo_upload(
             path=imagePath,
             caption=caption,
-            location=Location(name=str(location),
-                              lat=lat_lng[0], lng=lat_lng[1])
+            location=location
         )
     else:
         cl.photo_upload(
@@ -73,5 +72,3 @@ def upload_photo(imagePath, caption, location):
         )
 
     print(f"Location photo uploaded with = {location}")
-
-    location = None
