@@ -20,7 +20,7 @@ client = OpenAI(
 def main():
     try:
         # Get random country to generate image of
-        randomCountry = "United States"
+        randomCountry = get_random_country("data/countryList.txt")
         print("Got country -> ", randomCountry)
 
         # Get prompt to use for image generation
