@@ -2,6 +2,9 @@ import random
 import urllib.request
 from services.openai_generation import get_image_response, get_text_response
 
+def get_random_time_of_day():
+    times_of_day = ['sunrise', 'morning', 'afternoon', 'sunset', 'night']
+    return random.choice(times_of_day)
 
 def get_random_country(fileName):
     with open(fileName, 'r') as file:
