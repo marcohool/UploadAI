@@ -1,6 +1,6 @@
 .env
 dalleimage.jpg
 dalleimage2.png
-__pychache__
+__pycache__/
 data/session.json
 data/prompts.json
