@@ -1,20 +1,25 @@
-import os
-from openai import OpenAI
 from dotenv import load_dotenv
 from pathlib import Path
 from services.instragram_integration import upload_photo
-from services.openai_generation import get_text_response
+from services.openai_generation import OpenAIModel
 from utils.data_helpers import get_random_country, handle_image_generation, get_random_time_of_day
 from utils.json_processing import process_dalle_prompt_request
 import schedule
 import time
+import json
 
 dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
 
-client = OpenAI(
-    api_key=os.getenv('OPENAI_KEY'),
-)
+openAi = OpenAIModel()
+
+
+def load_prompts(config_file="data/prompts.json"):
+    with open(config_file, 'r') as f:
+        return json.load(f)
+
+
+prompts = load_prompts()
 
 
 def main():
@@ -28,14 +33,16 @@ def main():
         print("Got time of day -> ", timeOfDay)
 
         # Get prompt to use for image generation
-        dallePromptJSON = get_text_response(client, "gpt-4-1106-preview", 1, f"Design a prompt for DALL-E 3 to produce an attention-grabbing hyperrealistic and beatiful image of the beauty of {randomCountry} at {timeOfDay}. Pick a place in {randomCountry} with a name and base your image there, with a focus on urban cities if present in {randomCountry}. Please include specific details such as the desired setting, objects, colors, mood, and unique elements to be incorporated. Additionally, consider the mood and atmosphere you want to convey, and provide descriptive adjectives to guide the image creation. Specify the desired perspective and composition, as well as the preferred lighting and time of day. If applicable, indicate any desired action or movement within the image. Aim for a balance between providing sufficient detail and conciseness in your prompt. Feel free to employ analogies or comparisons to further clarify your vision. Lastly, indicate any desired styles or themes, and outline an iterative approach for refining the image. Return nothing but this prompt, no other text. The first word of your response should contain just the name of the place you are drawing as a location (town, city) within {randomCountry}, nothing else. Respond in a json format, with the first field 'chosenLocation' and second 'promptValue'")
-        print("Got prompt -> ", dallePromptJSON)
+        dalle_prompt_json = prompts['dalle_prompt_template'].format(
+            randomCountry=randomCountry, timeOfDay=timeOfDay)
+
+        print("Got prompt -> ", dalle_prompt_json)
         chosen_location, dalle_prompt = process_dalle_prompt_request(
-            dallePromptJSON)
+            dalle_prompt_json)
 
         # Generate image
-        caption = handle_image_generation(
-            client, dalle_prompt, "assets/dalleImage.jpg", True)
+        caption = handle_image_generation(openAi,
+                                          dalle_prompt, "assets/dalleImage.jpg", True)
 
         # Upload photo
         upload_photo("assets/dalleImage.jpg", caption,

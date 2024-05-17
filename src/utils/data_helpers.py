@@ -1,10 +1,12 @@
 import random
 import urllib.request
-from services.openai_generation import get_image_response, get_text_response
+from main import prompts
+
 
 def get_random_time_of_day():
     times_of_day = ['sunrise', 'morning', 'afternoon', 'sunset', 'night']
     return random.choice(times_of_day)
+
 
 def get_random_country(fileName):
     with open(fileName, 'r') as file:
@@ -15,8 +17,8 @@ def get_random_country(fileName):
         return lines[random_number]
 
 
-def handle_image_generation(client, dalle_prompt, imageFileName, caption):
-    generatedImageLink = get_image_response(client, dalle_prompt)
+def handle_image_generation(model, prompt, imageFileName, caption):
+    generatedImageLink = model.get_image_response(model, 1, prompt)
     print("\nImage generated -> ", generatedImageLink)
 
     # Download image
@@ -25,8 +27,8 @@ def handle_image_generation(client, dalle_prompt, imageFileName, caption):
 
     if caption:
         # Get photo caption
-        caption = get_text_response(
-            client, "gpt-4-1106-preview", 1, f"Generate a 1 or 2 sentence caption for this image description, describing it briefly, along with a list of total 20 hashtags for social media use. Please reply with this caption and nothing else: '{dalle_prompt}'")
+        caption = model.get_text_response(1,
+                                          prompts['caption_prompt'].format(prompt=prompt))
 
         # Add space between hashtags and caption
         caption = caption.replace('"', '')
