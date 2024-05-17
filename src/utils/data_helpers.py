@@ -1,6 +1,6 @@
 import random
 import urllib.request
-from main import prompts
+import json
 
 
 def get_random_time_of_day():
@@ -17,8 +17,13 @@ def get_random_country(fileName):
         return lines[random_number]
 
 
+def load_prompts(config_file="data/prompts.json"):
+    with open(config_file, 'r') as f:
+        return json.load(f)
+
+
 def handle_image_generation(model, prompt, imageFileName, caption):
-    generatedImageLink = model.get_image_response(model, 1, prompt)
+    generatedImageLink = model.get_image_response(prompt)
     print("\nImage generated -> ", generatedImageLink)
 
     # Download image
@@ -28,7 +33,7 @@ def handle_image_generation(model, prompt, imageFileName, caption):
     if caption:
         # Get photo caption
         caption = model.get_text_response(1,
-                                          prompts['caption_prompt'].format(prompt=prompt))
+                                          load_prompts()['caption_prompt'].format(prompt=prompt))
 
         # Add space between hashtags and caption
         caption = caption.replace('"', '')

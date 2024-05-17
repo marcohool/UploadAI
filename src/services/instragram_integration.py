@@ -1,8 +1,7 @@
-from instagrapi.types import Location
 from instagrapi.exceptions import LoginRequired
 from instagrapi import Client
+from pathlib import Path
 import os
-from geopy.geocoders import Nominatim
 
 
 def login_user():
@@ -11,7 +10,7 @@ def login_user():
     or the provided username and password.
     """
     cl = Client()
-    session = cl.load_settings("data/session.json")
+    session = cl.load_settings(Path("data/session.json"))
 
     if session:
         try:
@@ -33,7 +32,7 @@ def login_user():
 
                 cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD'))
 
-            cl.dump_settings("data/session.json")
+            cl.dump_settings(Path("data/session.json"))
             return cl
         except Exception as e:
             print("Couldn't login user using session information: ", e)
@@ -42,7 +41,7 @@ def login_user():
         print(
             f"Attempting to login with username and password\n\tUsername: {os.getenv('IG_UNAME')}")
         if cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD')):
-            cl.dump_settings("data/session.json")
+            cl.dump_settings(Path("data/session.json"))
             return cl
     except Exception as e:
         print("Couldn't login user with username and password: ", e)
@@ -53,13 +52,10 @@ def login_user():
 def upload_photo(imagePath, caption, location):
     cl = login_user()
 
-    # Get location of country
-    # geolocator = Nominatim(user_agent="get_lat_lng")
     location = cl.fbsearch_places(location)[2]
     print(f"Location generated = {location}")
 
     if location:
-        # lat_lng = [location.latitude, location.longitude]
         cl.photo_upload(
             path=imagePath,
             caption=caption,
