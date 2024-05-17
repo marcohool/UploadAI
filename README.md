@@ -3,7 +3,7 @@ UploadAI is a Python application which automatically generates and posts AI-gene
 
 Follow the page [here](https://www.instagram.com/worldswondersai/)!
 
-* Leverages OpenAI's GPT-4 for text generation and DALL-E 3 for image creation.
+* Leverages OpenAI's GPT-4o for text generation and DALL-E 3 for image creation.
 * Automatically posts to Instagram using `instagrapi`.
 * Adds location tags to Instagram posts using `geopy`.
 * Runs three times a day at specified times.
