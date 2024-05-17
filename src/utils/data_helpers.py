@@ -8,6 +8,32 @@ def get_random_time_of_day():
     return random.choice(times_of_day)
 
 
+def get_photographic_style():
+    photographic_style = [
+        "Landscape",
+        "Urban Exploration (Urbex)",
+        "Street Photography",
+        "Architectural Photography",
+        "Aerial Photography",
+        "Night Photography",
+        "Black and White",
+        "Panoramic",
+        "HDR (High Dynamic Range)",
+        "Minimalist",
+        "Macro",
+        "Documentary",
+        "Cinematic",
+        "Long Exposure",
+        "Travel Photography",
+        "Environmental Portraiture",
+        "Surreal",
+        "Vintage/Retro",
+        "Tilt-Shift",
+        "Infrared"
+    ]
+    return random.choice(photographic_style)
+
+
 def get_random_country(fileName):
     with open(fileName, 'r') as file:
         lines = file.readlines()
