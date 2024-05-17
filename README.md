@@ -1,5 +1,7 @@
 # UploadAI
-UploadAI is a Python application which automatically generates and posts AI-generated images to Instagram. It creates unique image prompts, generates images based on these prompts, and uploads them to Instagram with relevant captions and hashtags. The program is scheduled to run three times daily.
+UploadAI is a Python application which automatically generates and posts AI-generated images to Instagram. It creates unique image prompts, generates images based on these prompts, and uploads them to Instagram with relevant captions and hashtags. The program is scheduled to run twice daily.
+
+Follow the page [here](https://www.instagram.com/worldswondersai/)!
 
 * Leverages OpenAI's GPT-4 for text generation and DALL-E 3 for image creation.
 * Automatically posts to Instagram using `instagrapi`.
