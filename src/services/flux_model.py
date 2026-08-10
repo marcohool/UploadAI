@@ -3,9 +3,9 @@ import replicate
 
 
 class FluxModel:
-    def __init__(self):
+    def __init__(self, model="black-forest-labs/flux-1.1-pro"):
         self.client = replicate.Client(api_token=os.getenv('REPLICATE_API_TOKEN'))
-        self.model = "black-forest-labs/flux-1.1-pro"
+        self.model = model
 
     def generate_image(self, prompt):
         output = self.client.run(

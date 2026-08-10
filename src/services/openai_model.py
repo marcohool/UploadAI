@@ -3,11 +3,11 @@ from openai import OpenAI
 
 
 class OpenAIModel:
-    def __init__(self):
+    def __init__(self, model="gpt-4o"):
         self.client = OpenAI(
             api_key=os.getenv('OPENAI_KEY'),
         )
-        self.model = "gpt-4o"
+        self.model = model
 
     def get_text_response(self, temperature, inputText):
         chat_completion = self.client.chat.completions.create(

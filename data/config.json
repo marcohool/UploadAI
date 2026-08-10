@@ -1,0 +1,4 @@
+{
+    "openai_model": "gpt-4o",
+    "flux_model": "black-forest-labs/flux-1.1-pro"
+}

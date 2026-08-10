@@ -4,7 +4,7 @@ from pathlib import Path
 from services.instragram_integration import upload_photo
 from services.openai_model import OpenAIModel
 from services.flux_model import FluxModel
-from utils.data_helpers import get_photographic_style, get_random_country, get_shot_category, handle_image_generation, get_random_time_of_day, load_prompts
+from utils.data_helpers import get_photographic_style, get_random_country, get_shot_category, handle_image_generation, get_random_time_of_day, load_config, load_prompts
 from utils.json_processing import process_dalle_prompt_request
 import schedule
 import time
@@ -12,8 +12,9 @@ import time
 dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
 
-openAi = OpenAIModel()
-flux = FluxModel()
+config = load_config()
+openAi = OpenAIModel(model=config['openai_model'])
+flux = FluxModel(model=config['flux_model'])
 
 
 prompts = load_prompts()

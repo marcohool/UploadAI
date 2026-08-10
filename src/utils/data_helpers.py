@@ -80,6 +80,11 @@ def load_prompts(config_file="data/prompts.json"):
         return json.load(f)
 
 
+def load_config(config_file="data/config.json"):
+    with open(config_file, 'r') as f:
+        return json.load(f)
+
+
 def handle_image_generation(text_model, image_model, prompts, prompt, imageFileName, caption):
     generatedImageLink = image_model.generate_image(prompt)
     print("\nImage generated -> ", generatedImageLink)
