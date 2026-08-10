@@ -1,11 +1,30 @@
 import argparse
+import random
 from dotenv import load_dotenv
 from pathlib import Path
 from services.instragram_integration import upload_photo
 from services.openai_model import OpenAIModel
 from services.flux_model import FluxModel
-from utils.data_helpers import get_photographic_style, get_random_country, get_shot_category, handle_image_generation, get_random_time_of_day, load_config, load_prompts
-from utils.json_processing import process_dalle_prompt_request
+from utils.data_helpers import (
+    format_exclusions,
+    get_exclusions,
+    get_fame_tier,
+    get_framing,
+    get_human_presence,
+    get_medium_look,
+    get_random_country,
+    get_random_time_of_day,
+    get_recent_countries,
+    get_shot_category,
+    get_weather,
+    handle_image_generation,
+    load_config,
+    load_history,
+    load_prompts,
+    save_history_entry,
+)
+from utils.json_processing import process_dalle_prompt_request, process_location_candidates
+from utils.prompt_cleanup import clean_image_prompt
 import schedule
 import time
 
@@ -14,7 +33,7 @@ load_dotenv(dotenv_path=dotenv_path)
 
 config = load_config()
 openAi = OpenAIModel(model=config['openai_model'])
-flux = FluxModel(model=config['flux_model'])
+flux = FluxModel(model=config['flux_model'], inputs=config.get('flux_inputs'))
 
 
 prompts = load_prompts()
@@ -22,44 +41,82 @@ prompts = load_prompts()
 
 def main(dry_run=False):
     try:
-        # Get random country to generate image of
-        randomCountry = get_random_country("data/countryList.txt")
+        history = load_history()
+
+        # Get random country to generate image of, damping down countries used
+        # in the last handful of posts
+        randomCountry = get_random_country(
+            "data/countryList.txt", recent_countries=get_recent_countries(history))
         print("Got country -> ", randomCountry)
 
-        # Get random time of day for image to be generated in
-        timeOfDay = get_random_time_of_day()
-        print("Got time of day -> ", timeOfDay)
-
-        # Get photographic style
-        photographicStyle = get_photographic_style()
-        print("Got photographic style -> ", photographicStyle)
-
-        # Get shot category (what the image actually depicts)
+        # Sample the photographic parameters here rather than letting the model
+        # choose them - left to itself it picks the same ones every time
         shotCategory = get_shot_category()
+        fameTier = get_fame_tier()
+        timeOfDay = get_random_time_of_day()
+        weather = get_weather()
+        framing = get_framing()
+        mediumLook = get_medium_look()
+        humanPresence = get_human_presence()
+
         print("Got shot category -> ", shotCategory)
+        print("Got fame tier -> ", fameTier)
+        print("Got time of day -> ", timeOfDay)
+        print("Got weather -> ", weather)
+        print("Got framing -> ", framing)
+        print("Got medium look -> ", mediumLook)
+        print("Got human presence -> ", humanPresence)
 
-        # Get prompt to use for image generation
-        image_prompt_json = openAi.get_text_response(1.2, prompts['image_prompt_template'].format(
-            randomCountry=randomCountry, timeOfDay=timeOfDay, photographicStyle=photographicStyle,
-            shotCategory=shotCategory))
+        # Stage 1: ask for a spread of candidate subjects and pick one at
+        # random. Asking for a single subject just returns the country's most
+        # obvious landmark almost every time.
+        used_locations, recent_subjects = get_exclusions(history, randomCountry)
+        candidates_json = openAi.get_text_response(1.2, prompts['location_candidates_prompt'].format(
+            randomCountry=randomCountry, shotCategory=shotCategory, fameTier=fameTier,
+            exclusions=format_exclusions(used_locations, recent_subjects)))
 
-        print("Got prompt -> ", image_prompt_json)
+        candidates = process_location_candidates(candidates_json)
+        candidate = random.choice(candidates)
+        print(f"Picked 1 of {len(candidates)} candidates -> ", candidate)
+
+        # Stage 2: describe that exact photograph
+        image_prompt_json = openAi.get_text_response(1.0, prompts['image_prompt_template'].format(
+            chosenLocation=candidate['location'], subject=candidate['subject'],
+            shotCategory=shotCategory, timeOfDay=timeOfDay, weather=weather,
+            framing=framing, mediumLook=mediumLook, humanPresence=humanPresence))
+
         chosen_location, image_prompt = process_dalle_prompt_request(
             image_prompt_json)
+
+        # Strip filler adjectives and any editorial closing sentence the model
+        # added, and keep the prompt inside the image model's text budget
+        image_prompt = clean_image_prompt(image_prompt)
+        print("Got prompt -> ", image_prompt)
 
         # Generate image
         caption = handle_image_generation(openAi, flux, prompts,
                                           image_prompt, "assets/generatedImage.jpg", True)
 
         if dry_run:
-            print("Dry run: skipping Instagram upload.")
+            print("Dry run: skipping Instagram upload and history write.")
             print(f"Location -> {chosen_location}, {randomCountry}")
             print(f"Caption -> {caption}")
             return
 
-        # Upload photo
+        # Upload photo. chosen_location already ends with the country, so it's
+        # used as-is, with the bare country as a fallback for obscure places
+        # Instagram has never heard of.
         upload_photo("assets/generatedImage.jpg", caption,
-                     f"{chosen_location}, {randomCountry}")
+                     chosen_location, randomCountry)
+
+        # Only record the post once it's actually live, so a failed run doesn't
+        # burn a location
+        save_history_entry({
+            "country": randomCountry,
+            "location": candidate['location'],
+            "subject": candidate['subject'],
+            "shot_category": shotCategory,
+        })
 
     except Exception as e:
         print("Couldn't perform main: ", e)

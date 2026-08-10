@@ -1,4 +1,9 @@
 {
     "openai_model": "gpt-4o",
-    "flux_model": "black-forest-labs/flux-1.1-pro"
+    "flux_model": "black-forest-labs/flux-2-pro",
+    "flux_inputs": {
+        "aspect_ratio": "1:1",
+        "output_format": "jpg",
+        "safety_tolerance": 2
+    }
 }

@@ -3,8 +3,12 @@ UploadAI is a Python application which automatically generates and posts AI-gene
 
 Follow the page [here](https://www.instagram.com/worldswondersai/)!
 
-* Leverages OpenAI's GPT-4o to write prompts and captions, and Flux 1.1 Pro (via Replicate) for photorealistic image creation.
-* Draws from a list of ~174 countries and a set of shot categories (cityscape, small town, nature, mountains, beach, wildlife, countryside, cultural sites, food/markets, people & culture) so posts don't repeat the same kind of shot.
+* Leverages OpenAI's GPT-4o to write prompts and captions, and FLUX.2 [pro] (via Replicate) for photorealistic image creation.
+* Picks locations in two stages: the model proposes 12 candidate subjects spread across the country's regions, and one is chosen at random. Asking for a single location just returns the country's most famous landmark almost every time.
+* Samples the photographic parameters in Python rather than leaving them to the model - shot category, fame tier, light, weather, lens and framing, film stock and human presence are drawn independently, giving a very large space of distinct looks.
+* Weights location choice away from the obvious postcard shot: only ~10% of posts target a country's best-known international landmark, ~30% an entirely ordinary place.
+* Keeps a post history (`data/history.json`) so a location is never reused, recent subjects aren't repeated, and recently-used countries are damped down.
+* Strips filler adjectives, editorial closing sentences and negation from generated prompts before they reach the image model.
 * Automatically posts to Instagram using `instagrapi`.
 * Adds location tags to Instagram posts using `geopy`.
 * Runs three times a day at specified times.
@@ -34,7 +38,7 @@ docker run -e OPENAI_KEY=your_openai_key -e REPLICATE_API_TOKEN=your_replicate_a
 
 ## Requirements
 * OpenAI API key
-* Replicate API token (for Flux 1.1 Pro image generation)
+* Replicate API token (for FLUX.2 [pro] image generation)
 * Instagram account credentials
 * Python 3.9+
 * Required Python libraries (as listed in `requirements.txt`)

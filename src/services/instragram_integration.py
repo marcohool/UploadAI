@@ -49,17 +49,42 @@ def login_user():
     raise Exception("Couldn't login user with either password or session")
 
 
-def upload_photo(imagePath, caption, location):
+def find_location(cl, *queries):
+    """Return the first place Instagram can find, trying each query in turn.
+
+    Posts now favour obscure locations, so a search returning nothing - or
+    fewer results than expected - is normal rather than exceptional. Falling
+    back to a broader query beats losing the geotag or the whole upload.
+    """
+    for query in queries:
+        if not query:
+            continue
+
+        try:
+            places = cl.fbsearch_places(query)
+        except Exception as e:
+            print(f"Location search failed for {query!r}: ", e)
+            continue
+
+        if places:
+            print(f"Matched {query!r} -> {places[0]}")
+            return places[0]
+
+        print(f"No location match for {query!r}")
+
+    return None
+
+
+def upload_photo(imagePath, caption, location, fallback_location=None):
     cl = login_user()
 
-    location = cl.fbsearch_places(location)[2]
-    print(f"Location generated = {location}")
+    place = find_location(cl, location, fallback_location)
 
-    if location:
+    if place:
         cl.photo_upload(
             path=imagePath,
             caption=caption,
-            location=location
+            location=place
         )
     else:
         cl.photo_upload(
@@ -67,4 +92,4 @@ def upload_photo(imagePath, caption, location):
             caption=caption
         )
 
-    print(f"Location photo uploaded with = {location}")
+    print(f"Location photo uploaded with = {place}")
