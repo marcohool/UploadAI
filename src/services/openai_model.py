@@ -22,14 +22,3 @@ class OpenAIModel:
         )
 
         return chat_completion.choices[0].message.content
-
-    def get_image_response(self, inputText):
-        response = self.client.images.generate(
-            model="dall-e-3",
-            prompt=inputText,
-            size="1024x1024",
-            quality="hd",
-            n=1,
-        )
-
-        return response.data[0].url

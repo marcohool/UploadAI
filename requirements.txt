@@ -1,6 +1,7 @@
-openai
-python-dotenv
-Pillow
-schedule
-geopy
-instagrapi
+openai==2.45.0
+python-dotenv==1.2.1
+Pillow==11.3.0
+schedule==1.2.2
+geopy==2.5.0
+instagrapi==2.4.5
+replicate==1.0.7

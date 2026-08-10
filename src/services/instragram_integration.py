@@ -63,7 +63,7 @@ def upload_photo(imagePath, caption, location):
         )
     else:
         cl.photo_upload(
-            path=location,
+            path=imagePath,
             caption=caption
         )
 

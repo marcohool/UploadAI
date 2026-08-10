@@ -15,6 +15,7 @@ COPY . .
 
 # Set environment variables
 ENV OPENAI_KEY your_openai_key
+ENV REPLICATE_API_TOKEN your_replicate_api_token
 ENV IG_UNAME your_instagram_username
 ENV IG_PWD your_instagram_password
 
