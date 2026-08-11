@@ -1,0 +1,17 @@
+.git
+.gitignore
+.github
+.venv
+.vscode
+.claude
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Secrets and local state — must never land in a published image
+.env
+data/session.json
+data/history.json
+
+assets/
+README.md
