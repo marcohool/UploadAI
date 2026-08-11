@@ -1,5 +1,5 @@
 {
-    "openai_model": "gpt-4o",
+    "openai_model": "gpt-5.4-nano",
     "flux_model": "black-forest-labs/flux-2-pro",
     "flux_inputs": {
         "aspect_ratio": "1:1",
