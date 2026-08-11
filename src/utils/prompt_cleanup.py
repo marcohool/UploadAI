@@ -184,3 +184,173 @@ def clean_image_prompt(text):
         cleaned += '.'
 
     return cleaned
+
+
+# --- Captions ---------------------------------------------------------------
+
+DEFAULT_HASHTAG_COUNT = 20
+MAX_HOOK_CHARS = 95
+
+# These survive being banned in the prompt often enough to be worth checking
+# for. Unlike a stray adjective they can't be lifted out of the sentence - the
+# sentence is built around them - so a caption containing one is rewritten
+# rather than repaired.
+_BANNED_CONSTRUCTIONS = [
+    (r"\b(?:is|are|was|were|isn't|aren't|it's|its)\s+not\s+just\b", "\"is not just X, it's Y\""),
+    (r"\b(?:isn't|aren't)\s+just\b", "\"isn't just X, it's Y\""),
+    (r"\bmore than just\b", "\"more than just\""),
+    (r"\bhere's the thing\b", "\"here's the thing\""),
+    (r"\blet that sink in\b", "\"let that sink in\""),
+    (r"\bin a world where\b", "\"in a world where\""),
+    # the adjective slot is optional - "a silent testament to" is the same tic
+    (r"\b(?:a|the)\s+(?:\w+\s+)?(?:testament|testimony)\s+to\b", "\"a testament/testimony to\""),
+    (r"\bblend of (?:the )?old and (?:the )?new\b", "\"a blend of old and new\""),
+    (r"\bwhere (?:tradition|the past|history|time)\s+\w+s\b", "a \"where tradition meets ...\" construction"),
+    (r"\b(?:I|we|my|our|I'm|we're|I've|we've)\b", "first person - the account never claims to have been there"),
+]
+
+_TRAILING_HASHTAGS = re.compile(r'(?:\s*#[^\s#]+)+\s*$')
+_NUMBER = re.compile(r'\b\d[\d,.]*\b')
+
+_EMOJI = re.compile("[\U0001F000-\U0001FAFF☀-➿️⬀-⯿]")
+
+
+def caption_hook(text):
+    """The part of the caption Instagram shows before it collapses the rest.
+
+    Normally the first line, but a caption whose shape is one unbroken
+    paragraph has no first line to speak of, so the first sentence stands in.
+    """
+    first_line = text.strip().splitlines()[0].strip()
+
+    if len(first_line) <= MAX_HOOK_CHARS:
+        return first_line
+
+    sentences = split_sentences(first_line)
+
+    return sentences[0] if sentences else first_line
+
+
+def split_trailing_hashtags(text):
+    """Pull a trailing run of hashtags back out of the caption body.
+
+    The model puts them there instead of - or as well as - in the hashtags
+    array often enough that they'd otherwise either go missing from the post or
+    appear in it twice."""
+    match = _TRAILING_HASHTAGS.search(text)
+
+    if not match:
+        return text.strip(), []
+
+    return text[:match.start()].strip(), re.findall(r'#([^\s#]+)', match.group(0))
+
+
+def _number_key(number):
+    return number.replace(',', '').rstrip('.')
+
+
+def unsupported_numbers(text, facts):
+    """Numbers in the caption that the researcher never supplied.
+
+    A reader takes a number at face value, and it is the thing the model is
+    most willing to invent - it will happily open on a population figure it
+    made up to fill a shape asking for a bare number. Every digit therefore has
+    to trace back to the researched material."""
+    sourced = {_number_key(number) for fact in facts
+               for number in _NUMBER.findall(fact["fact"])}
+
+    return [number for number in _NUMBER.findall(text)
+            if _number_key(number) not in sourced]
+
+
+def caption_issues(text, facts=()):
+    """Problems worth spending another API call to fix, phrased so they can be
+    handed straight back to the model."""
+    issues = []
+
+    unsupported = unsupported_numbers(text, facts)
+    if unsupported:
+        issues.append(
+            "it states numbers that are not in the researched material - "
+            + ", ".join(unsupported)
+            + " - and inventing a figure is worse than having none, so take "
+              "them out and write it without numbers")
+
+    hook = caption_hook(text)
+    if len(hook) > MAX_HOOK_CHARS:
+        issues.append(
+            f"the opening is {len(hook)} characters, over the {MAX_HOOK_CHARS} "
+            "character limit - Instagram will cut it mid-thought")
+
+    for pattern, description in _BANNED_CONSTRUCTIONS:
+        if re.search(pattern, text, re.IGNORECASE):
+            issues.append(f"it uses {description}, which is not allowed")
+
+    if _EMOJI.search(text):
+        issues.append("it contains an emoji")
+
+    return issues
+
+
+def _clean_caption_line(line):
+    """strip_cliches() rejoins on spaces, which would flatten the line breaks a
+    caption's shape depends on, so captions are cleaned a line at a time.
+
+    A caption is short enough that dropping a sentence can take half of it, so
+    nothing is dropped here - if lifting the word out breaks the line, the line
+    is left as written."""
+    if not line.strip() or not has_cliche(line):
+        return line
+
+    cleaned = line
+    for pattern in _REMOVAL_PATTERNS:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
+    cleaned = _tidy(cleaned)
+
+    if looks_broken(cleaned) or not cleaned.strip(' .,;:'):
+        return line
+
+    return cleaned
+
+
+def clean_caption(text):
+    """Strip the filler adjectives the model reaches for despite being told not
+    to. Unlike an image prompt, a caption is read by people, so a caption left
+    slightly clichéd beats one left with a hole in it."""
+    text = text.strip()
+
+    if not has_cliche(text):
+        return text
+
+    cleaned = "\n".join(_clean_caption_line(line) for line in text.split("\n"))
+
+    original_words = len(text.split())
+    if original_words and len(cleaned.split()) < original_words * (1 - MAX_DROPPED_FRACTION):
+        print("Caption cleanup would have cut too much - keeping it as written.")
+        return text
+
+    if has_cliche(cleaned):
+        print("Caption still contains filler wording -> ", cleaned)
+
+    return cleaned
+
+
+def normalise_hashtags(tags, count=DEFAULT_HASHTAG_COUNT):
+    """Hashtag output is inconsistent whatever the prompt says - a stray '#',
+    mixed case, punctuation inside a tag, the odd duplicate - so it's fixed
+    here rather than by asking the model again to be careful."""
+    seen, cleaned = set(), []
+
+    for tag in tags:
+        tag = re.sub(r'\W+', '', tag.lower()).strip('_')
+
+        if not tag or tag in seen:
+            continue
+
+        seen.add(tag)
+        cleaned.append(f"#{tag}")
+
+        if len(cleaned) == count:
+            break
+
+    return " ".join(cleaned)

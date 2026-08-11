@@ -7,6 +7,9 @@ from services.openai_model import OpenAIModel
 from services.flux_model import FluxModel
 from utils.data_helpers import (
     format_exclusions,
+    generate_caption,
+    get_caption_angle,
+    get_caption_shape,
     get_exclusions,
     get_fame_tier,
     get_framing,
@@ -14,6 +17,7 @@ from utils.data_helpers import (
     get_medium_look,
     get_random_country,
     get_random_time_of_day,
+    get_recent_caption_angles,
     get_recent_countries,
     get_shot_category,
     get_weather,
@@ -22,6 +26,7 @@ from utils.data_helpers import (
     load_history,
     load_prompts,
     save_history_entry,
+    should_ask_question,
 )
 from utils.json_processing import process_dalle_prompt_request, process_location_candidates
 from utils.prompt_cleanup import clean_image_prompt
@@ -59,6 +64,12 @@ def main(dry_run=False):
         mediumLook = get_medium_look()
         humanPresence = get_human_presence()
 
+        # Same reasoning for the caption: what it says and how it sits on the
+        # screen are both sampled, so consecutive posts don't share a template
+        captionAngle = get_caption_angle(get_recent_caption_angles(history))
+        captionShape = get_caption_shape()
+        askQuestion = should_ask_question()
+
         print("Got shot category -> ", shotCategory)
         print("Got fame tier -> ", fameTier)
         print("Got time of day -> ", timeOfDay)
@@ -66,6 +77,9 @@ def main(dry_run=False):
         print("Got framing -> ", framing)
         print("Got medium look -> ", mediumLook)
         print("Got human presence -> ", humanPresence)
+        print("Got caption angle -> ", captionAngle)
+        print("Got caption shape -> ", captionShape)
+        print("Got caption question -> ", askQuestion)
 
         # Stage 1: ask for a spread of candidate subjects and pick one at
         # random. Asking for a single subject just returns the country's most
@@ -94,8 +108,16 @@ def main(dry_run=False):
         print("Got prompt -> ", image_prompt)
 
         # Generate image
-        caption = handle_image_generation(openAi, flux, prompts,
-                                          image_prompt, "assets/generatedImage.jpg", True)
+        handle_image_generation(flux, image_prompt, "assets/generatedImage.jpg")
+
+        # The caption is written from the place itself, not from the image
+        # prompt - describing the photo to somebody already looking at it is
+        # what made every caption interchangeable
+        caption = generate_caption(openAi, prompts,
+                                   location=chosen_location, country=randomCountry,
+                                   subject=candidate['subject'], shot_category=shotCategory,
+                                   angle=captionAngle, shape=captionShape,
+                                   ask_question=askQuestion)
 
         if dry_run:
             print("Dry run: skipping Instagram upload and history write.")
@@ -116,6 +138,7 @@ def main(dry_run=False):
             "location": candidate['location'],
             "subject": candidate['subject'],
             "shot_category": shotCategory,
+            "caption_angle": captionAngle,
         })
 
     except Exception as e:
