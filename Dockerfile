@@ -13,13 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of your application's code
 COPY . .
 
-# data/history.json and data/session.json are runtime state, not config, so
-# .dockerignore keeps them out of the build context. Seed them as empty but
-# valid files (rather than leaving the path absent) so a named volume mounted
-# over either path on first run seeds from a real file instead of Docker
-# falling back to creating a directory there.
-RUN echo '[]' > data/history.json && touch data/session.json
-
 # Set environment variables
 ENV OPENAI_KEY your_openai_key
 ENV REPLICATE_API_TOKEN your_replicate_api_token

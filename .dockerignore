@@ -10,8 +10,7 @@ __pycache__/
 
 # Secrets and local state — must never land in a published image
 .env
-data/session.json
-data/history.json
+data/state/
 
 assets/
 README.md

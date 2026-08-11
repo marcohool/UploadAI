@@ -275,7 +275,7 @@ def load_config(config_file="data/config.json"):
 # Without this, nothing stops the same country and landmark reappearing. The
 # history is fed back into the prompt as an explicit exclusion list.
 
-HISTORY_FILE = "data/history.json"
+HISTORY_FILE = "data/state/history.json"
 HISTORY_LIMIT = 400
 RECENT_COUNTRY_WINDOW = 25
 RECENT_SUBJECT_WINDOW = 40

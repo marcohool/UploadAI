@@ -11,13 +11,19 @@ def login_user():
     or the provided username and password.
     """
     cl = Client()
+    session_path = Path("data/state/session.json")
 
     # A missing or empty session.json is normal on a fresh volume - fall
     # through to username/password login instead of aborting the whole run.
     try:
-        session = cl.load_settings(Path("data/session.json"))
+        session = cl.load_settings(session_path)
     except (FileNotFoundError, json.JSONDecodeError):
         session = None
+
+    # dump_settings() writes without creating its parent directory, and on a
+    # freshly mounted volume data/state doesn't exist until something writes
+    # into it - history.json's writer makes its own directory, so this has to.
+    session_path.parent.mkdir(parents=True, exist_ok=True)
 
     if session:
         try:
@@ -39,7 +45,7 @@ def login_user():
 
                 cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD'))
 
-            cl.dump_settings(Path("data/session.json"))
+            cl.dump_settings(session_path)
             return cl
         except Exception as e:
             print("Couldn't login user using session information: ", e)
@@ -48,7 +54,7 @@ def login_user():
         print(
             f"Attempting to login with username and password\n\tUsername: {os.getenv('IG_UNAME')}")
         if cl.login(os.getenv('IG_UNAME'), os.getenv('IG_PWD')):
-            cl.dump_settings(Path("data/session.json"))
+            cl.dump_settings(session_path)
             return cl
     except Exception as e:
         print("Couldn't login user with username and password: ", e)

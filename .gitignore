@@ -2,6 +2,5 @@
 dalleimage.jpg
 dalleimage2.png
 __pycache__/
-data/session.json
-data/history.json
+data/state/
 assets/

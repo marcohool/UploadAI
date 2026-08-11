@@ -47,9 +47,11 @@ docker compose down         # stop and remove the container
 To pin a specific build instead of tracking `latest`, change the `image:` tag in `docker-compose.yml` to a commit SHA, e.g. `ghcr.io/marcohool/uploadai:f380a70...`.
 
 ### State and configuration
-`config.json`, `prompts.json` and `countryList.txt` ship baked into the image, so the container is self-contained and doesn't need a local `./data` folder to run. `history.json` (which keeps locations from being reused) and `session.json` (the saved Instagram login, which avoids re-authenticating every run) are the only things that need to persist, so those two files live in named Docker volumes (`history` and `session`) that survive restarts and image updates.
+`config.json`, `prompts.json` and `countryList.txt` ship baked into the image at `data/`, so the container is self-contained and doesn't need a local `./data` folder to run. `history.json` (which keeps locations from being reused) and `session.json` (the saved Instagram login, which avoids re-authenticating every run) are the only things that need to persist, so they live under `data/state/`, which is mounted as a single named Docker volume (`state`) that survives restarts and image updates.
 
-To change `config.json`, `prompts.json` or `countryList.txt`, edit them in the repo and rebuild/re-pull the image - editing a local copy no longer has any effect on a running container. To inspect or reset the persisted state, use `docker compose exec uploadai cat data/history.json` or `docker compose down -v` to drop it and start clean.
+To change `config.json`, `prompts.json` or `countryList.txt`, edit them in the repo and rebuild/re-pull the image - editing a local copy no longer has any effect on a running container. To inspect or reset the persisted state, use `docker compose exec uploadai cat data/state/history.json` or `docker compose down -v` to drop it and start clean.
+
+**Upgrading an existing deployment:** older versions bind-mounted `./data` directly and kept `history.json`/`session.json` at its top level. Before switching to the new `docker-compose.yml`, move your existing state into place so it isn't lost: `mkdir -p data/state && mv data/history.json data/session.json data/state/`, then `docker compose up -d`.
 
 ### Building locally
 To run your working tree instead of the published image, add a `build: .` line to the service in `docker-compose.yml` and use:
