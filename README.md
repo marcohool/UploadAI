@@ -24,16 +24,40 @@ Follow the page [here](https://www.instagram.com/worldswondersai/)!
 * Try it out without posting: `python src/main.py --dry-run`
 
 
-## Docker 
+## Docker
 This application can be containerized using Docker, ensuring an isolated and consistent environment.
-1. Build the Docker Image:
+
+Every push to `main` builds the image and publishes it to the GitHub Container Registry as `ghcr.io/marcohool/uploadai`, tagged `latest` and with the commit SHA. Images are built for `linux/amd64` and `linux/arm64`.
+
+### Pull and run the published image
+1. Pull the image:
 ```
-docker build -t uploadai .
+docker pull ghcr.io/marcohool/uploadai:latest
 ```
 
-2. Run the Container:
+2. Run the container:
 ```
-docker run -e OPENAI_KEY=your_openai_key -e REPLICATE_API_TOKEN=your_replicate_api_token -e IG_UNAME=your_instagram_username -e IG_PWD=your_instagram_password uploadai
+docker run -d --name uploadai -v uploadai-data:/usr/src/app/data -e OPENAI_KEY=your_openai_key -e REPLICATE_API_TOKEN=your_replicate_api_token -e IG_UNAME=your_instagram_username -e IG_PWD=your_instagram_password ghcr.io/marcohool/uploadai:latest
+```
+
+If you already have a `.env` file, pass it directly instead of listing each variable:
+```
+docker run -d --name uploadai -v uploadai-data:/usr/src/app/data --env-file .env ghcr.io/marcohool/uploadai:latest
+```
+
+To pin a specific build rather than tracking `latest`, replace the tag with a commit SHA, e.g. `ghcr.io/marcohool/uploadai:f380a70...`.
+
+The container runs on the built-in schedule and posts three times a day, so it is meant to stay running — hence `-d`. Follow its output with `docker logs -f uploadai`.
+
+### Persisting state
+The `-v uploadai-data:/usr/src/app/data` volume keeps `history.json` (so locations are never reused across restarts) and `session.json` (the saved Instagram login, which avoids re-authenticating every run). Without it, both are lost whenever the container is recreated.
+
+Use a **named volume** as shown, not a bind mount to a host directory. Docker seeds an empty named volume from the image, so `config.json`, `prompts.json` and `countryList.txt` are preserved; a bind mount would hide them and the app would fail to start. Note that seeding only happens once — if a later image ships an updated `config.json` or `prompts.json`, the existing volume keeps the old copies. Remove the volume with `docker volume rm uploadai-data` to pick up the new defaults, at the cost of the post history.
+
+### Building locally
+```
+docker build -t uploadai .
+docker run -d --name uploadai -v uploadai-data:/usr/src/app/data --env-file .env uploadai
 ```
 
 ## Requirements
