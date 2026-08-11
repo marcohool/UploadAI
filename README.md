@@ -35,7 +35,7 @@ Clone the repository, create a `.env` file (see `.env.sample`), then:
 docker compose up -d
 ```
 
-That pulls the published image, loads credentials from `.env`, mounts `./data` into the container and restarts the app automatically unless you stop it yourself.
+That pulls the published image, loads credentials from `.env`, and restarts the app automatically unless you stop it yourself. Cloning the repository is only needed to get `docker-compose.yml` and `.env.sample` - the app itself runs from the published image and doesn't read from your working tree.
 
 Common operations:
 ```
@@ -47,7 +47,9 @@ docker compose down         # stop and remove the container
 To pin a specific build instead of tracking `latest`, change the `image:` tag in `docker-compose.yml` to a commit SHA, e.g. `ghcr.io/marcohool/uploadai:f380a70...`.
 
 ### State and configuration
-`./data` is bind-mounted into the container, so `history.json` (which keeps locations from being reused) and `session.json` (the saved Instagram login, which avoids re-authenticating every run) persist on the host across restarts and image updates. The same mount means `config.json`, `prompts.json` and `countryList.txt` are read from your working tree, so a `git pull` or a local edit takes effect on the next restart rather than being baked into the image.
+`config.json`, `prompts.json` and `countryList.txt` ship baked into the image, so the container is self-contained and doesn't need a local `./data` folder to run. `history.json` (which keeps locations from being reused) and `session.json` (the saved Instagram login, which avoids re-authenticating every run) are the only things that need to persist, so those two files live in named Docker volumes (`history` and `session`) that survive restarts and image updates.
+
+To change `config.json`, `prompts.json` or `countryList.txt`, edit them in the repo and rebuild/re-pull the image - editing a local copy no longer has any effect on a running container. To inspect or reset the persisted state, use `docker compose exec uploadai cat data/history.json` or `docker compose down -v` to drop it and start clean.
 
 ### Building locally
 To run your working tree instead of the published image, add a `build: .` line to the service in `docker-compose.yml` and use:

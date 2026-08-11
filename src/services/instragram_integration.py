@@ -1,6 +1,7 @@
 from instagrapi.exceptions import LoginRequired
 from instagrapi import Client
 from pathlib import Path
+import json
 import os
 
 
@@ -10,7 +11,13 @@ def login_user():
     or the provided username and password.
     """
     cl = Client()
-    session = cl.load_settings(Path("data/session.json"))
+
+    # A missing or empty session.json is normal on a fresh volume - fall
+    # through to username/password login instead of aborting the whole run.
+    try:
+        session = cl.load_settings(Path("data/session.json"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        session = None
 
     if session:
         try:

@@ -6,4 +6,13 @@ services:
     env_file:
       - .env
     volumes:
-      - ./data:/usr/src/app/data
+      # config.json, prompts.json and countryList.txt ship baked into the
+      # image and are intentionally left unmounted. Only the two files that
+      # are runtime state are persisted here, so they survive restarts and
+      # image updates without shadowing the packaged config.
+      - history:/usr/src/app/data/history.json
+      - session:/usr/src/app/data/session.json
+
+volumes:
+  history:
+  session:
