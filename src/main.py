@@ -155,16 +155,16 @@ if __name__ == "__main__":
         main(dry_run=True)
     else:
         # Tuesday
-        schedule.every().tuesday.at("19:00").do(main)
+        schedule.every().tuesday.at("18:00").do(main)
 
         # Wednesday
-        schedule.every().wednesday.at("19:00").do(main)
+        schedule.every().wednesday.at("18:00").do(main)
 
         # Thursday
-        schedule.every().thursday.at("19:00").do(main)
+        schedule.every().thursday.at("18:00").do(main)
 
         # Sunday
-        schedule.every().sunday.at("19:00").do(main)
+        schedule.every().sunday.at("18:00").do(main)
 
         while True:
             schedule.run_pending()
