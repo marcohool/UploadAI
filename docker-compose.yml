@@ -11,6 +11,18 @@ services:
       # (history.json, session.json) is runtime state, so only that
       # subdirectory is persisted here, without shadowing the packaged config.
       - state:/usr/src/app/data/state
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    # Maintained fork of containrrr/watchtower (unmaintained since 2023 and
+    # incompatible with Docker Engine 29+). Same labels and flags.
+    image: nickfedor/watchtower:1.23.0
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup --label-enable
 
 volumes:
   state:

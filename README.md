@@ -37,14 +37,17 @@ docker compose up -d
 
 That pulls the published image, loads credentials from `.env`, and restarts the app automatically unless you stop it yourself. Cloning the repository is only needed to get `docker-compose.yml` and `.env.sample` - the app itself runs from the published image and doesn't read from your working tree.
 
+### Automatic updates
+The compose file also runs [Watchtower](https://github.com/nicholas-fedor/watchtower), which checks GHCR every 5 minutes and, when a new `latest` image has been published, pulls it, recreates the `uploadai` container and removes the old image. So a push to `main` reaches the running deployment within a few minutes of the build finishing, with no manual step. Only containers labelled `com.centurylinklabs.watchtower.enable=true` are touched. The image is public, so no registry login is needed on the host. Run `docker compose logs -f watchtower` to see update checks.
+
 Common operations:
 ```
 docker compose logs -f      # follow output
-docker compose pull && docker compose up -d      # update to the latest image
+docker compose pull && docker compose up -d      # update immediately instead of waiting for Watchtower
 docker compose down         # stop and remove the container
 ```
 
-To pin a specific build instead of tracking `latest`, change the `image:` tag in `docker-compose.yml` to a commit SHA, e.g. `ghcr.io/marcohool/uploadai:f380a70...`.
+To pin a specific build instead of tracking `latest`, change the `image:` tag in `docker-compose.yml` to a commit SHA, e.g. `ghcr.io/marcohool/uploadai:f380a70...`. Watchtower then leaves it alone, since that tag never changes.
 
 ### State and configuration
 `config.json`, `prompts.json` and `countryList.txt` ship baked into the image at `data/`, so the container is self-contained and doesn't need a local `./data` folder to run. `history.json` (which keeps locations from being reused) and `session.json` (the saved Instagram login, which avoids re-authenticating every run) are the only things that need to persist, so they live under `data/state/`, which is mounted as a single named Docker volume (`state`) that survives restarts and image updates.
