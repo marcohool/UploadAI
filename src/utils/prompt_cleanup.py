@@ -188,7 +188,9 @@ def clean_image_prompt(text):
 
 # --- Captions ---------------------------------------------------------------
 
-DEFAULT_HASHTAG_COUNT = 20
+# Instagram caps posts at five hashtags, and the tags that work are the few
+# that name the place - twenty literal ones (#motorcycleparking) did nothing.
+DEFAULT_HASHTAG_COUNT = 5
 MAX_HOOK_CHARS = 95
 
 # These survive being banned in the prompt often enough to be worth checking
@@ -207,6 +209,13 @@ _BANNED_CONSTRUCTIONS = [
     (r"\bblend of (?:the )?old and (?:the )?new\b", "\"a blend of old and new\""),
     (r"\bwhere (?:tradition|the past|history|time)\s+\w+s\b", "a \"where tradition meets ...\" construction"),
     (r"\b(?:I|we|my|our|I'm|we're|I've|we've)\b", "first person - the account never claims to have been there"),
+    # Asking for engagement outright makes a post ineligible to be recommended
+    # to non-followers, which is where nearly all of a small account's reach
+    # is. Matched as an imperative opening a sentence, so prose like "pilgrims
+    # share it with visitors" isn't caught.
+    (r"(?:^|[.!?]\s+|\n\s*)(?:save|bookmark|share|send|tag|follow|comment|double[- ]tap)\b",
+     "a request to save, share, tag, comment or follow - Instagram stops recommending posts that ask for engagement"),
+    (r";", "semicolons - split them into separate sentences"),
 ]
 
 _TRAILING_HASHTAGS = re.compile(r'(?:\s*#[^\s#]+)+\s*$')
@@ -313,11 +322,20 @@ def _clean_caption_line(line):
     return cleaned
 
 
+def _finish_hook(text):
+    """The hook sits alone on the first line and the model often leaves it
+    without a full stop, which reads as a fragment under a photo."""
+    first, sep, rest = text.partition("\n")
+    if first and first[-1].isalnum():
+        first += "."
+    return first + sep + rest
+
+
 def clean_caption(text):
     """Strip the filler adjectives the model reaches for despite being told not
     to. Unlike an image prompt, a caption is read by people, so a caption left
     slightly clichéd beats one left with a hole in it."""
-    text = text.strip()
+    text = _finish_hook(text.strip())
 
     if not has_cliche(text):
         return text

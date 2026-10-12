@@ -18,8 +18,10 @@ def process_dalle_prompt_request(dalle_json_prompt):
 
     locationGenerted = jsonPrompt["chosenLocation"]
     dallePrompt = jsonPrompt["promptValue"]
+    lightCondition = jsonPrompt.get("lightCondition", "")
+    framing = jsonPrompt.get("framing", "")
 
-    return locationGenerted, dallePrompt
+    return locationGenerted, dallePrompt, lightCondition, framing
 
 
 def process_location_candidates(candidates_json):
@@ -38,6 +40,14 @@ def process_location_candidates(candidates_json):
     if not valid:
         raise ValueError(
             f"No candidate had both a location and a subject: {candidates_json!r}")
+
+    # A missing or garbled score ranks last rather than failing the post
+    for candidate in valid:
+        try:
+            candidate["visual_impact"] = float(candidate.get("visual_impact", 0))
+        except (TypeError, ValueError):
+            candidate["visual_impact"] = 0.0
+        candidate.setdefault("why_spectacular", "")
 
     return valid
 

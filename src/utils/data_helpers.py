@@ -4,127 +4,126 @@ import urllib.request
 import json
 from datetime import datetime, timezone
 
+from PIL import Image, ImageOps
+
 from utils.json_processing import process_caption_facts, process_caption_response
-from utils.prompt_cleanup import (caption_issues, clean_caption,
-                                  normalise_hashtags, split_trailing_hashtags)
+from utils.prompt_cleanup import (DEFAULT_HASHTAG_COUNT, caption_issues,
+                                  clean_caption, normalise_hashtags,
+                                  split_trailing_hashtags)
 
 
 # Every axis below is sampled here in Python rather than left to the language
 # model. Asked to choose freely, the model returns its favourite answer almost
-# every time (35mm, golden hour, the most famous landmark), which is what makes
-# a feed look repetitive. Sampling here forces genuine spread.
+# every time (golden hour, 24mm, the same landmark), which is what makes a feed
+# look repetitive. Sampling here forces genuine spread.
+#
+# Every option on every axis has to be capable of producing a photograph worth
+# stopping for. The account is called World's Wonders: variety comes from which
+# wonder and how it is seen, never from making it look worse. An earlier version
+# sampled drizzle, expired film, phone snapshots and "the kind of spot nobody
+# photographs" independently, so only about one post in fifty drew a good place
+# in good light on a flattering medium - and that is exactly how the feed looked.
 
 
-def get_random_time_of_day():
-    times_of_day = [
-        'pre-dawn blue hour, before the sun is up',
-        'sunrise, with the sun still low and raking',
-        'early morning, soft and cool',
-        'mid-morning, bright and ordinary',
-        'harsh midday sun, short hard shadows',
-        'flat overcast afternoon light',
-        'late afternoon, long shadows',
-        'golden hour, warm low sun',
-        'sunset',
-        'dusk, blue hour after the sun has gone',
-        'night, lit only by available artificial light',
-        'late night, quiet and mostly dark',
-    ]
-    return random.choice(times_of_day)
+# Light and weather are one axis, offered as a shortlist the model chooses from.
+# Sampled independently and imposed, they produced snow in Hoi An and fog-bound
+# night shots of courtyards. The model knows which of a few beautiful options is
+# plausible for this place and season; it just mustn't pick from all of them, or
+# it picks golden hour every time.
+LIGHT_CONDITIONS = [
+    'first light, the sun just clearing the horizon and raking low across the subject',
+    'golden hour, warm low sun lighting the subject from the side',
+    'sunset, the sky lit up with colour in high broken cloud',
+    'blue hour just after sunset, a deep blue sky with lights just switched on',
+    'soft early morning, mist lying in the valleys and over water',
+    'a clearing storm, shafts of sunlight breaking through dark cloud onto the subject',
+    'bright clear day, deep blue sky, clear true colour in water and foliage',
+    'soft overcast light after rain, wet rock and rich deep greens',
+    'clear night, the Milky Way overhead, the landscape faintly lit by starlight',
+    'fresh snow under a clear sky, crisp cold light',
+    'the aurora overhead, green curtains reflected in the landscape below',
+    'low cloud wrapping the peaks and towers, sunlight breaking through above it',
+    'a sea of cloud filling the valleys below, the subject rising clear above it in early light',
+    'warm late afternoon light at the peak of autumn colour',
+    'spring, the landscape in blossom or full fresh green, under soft bright light',
+]
+
+LIGHT_OPTION_COUNT = 3
 
 
-def get_weather():
-    weather = [
-        'clear and dry',
-        'hot and hazy, air shimmering',
-        'heavy grey overcast',
-        'light drizzle',
-        'just after heavy rain, everything wet and reflective',
-        'thick fog or low cloud',
-        'dust or sand haze in the air',
-        'falling snow',
-        'old snow on the ground, grey sky',
-        'strong wind moving everything loose',
-        'storm clouds breaking apart, patchy dramatic light',
-        'humid and overcast, monsoon-heavy air',
-        'crisp and cold, breath visible',
-        'smoke or cooking haze hanging in the air',
-    ]
-    return random.choice(weather)
+def get_light_options(count=LIGHT_OPTION_COUNT):
+    return random.sample(LIGHT_CONDITIONS, count)
 
 
-# Framing recipes pair a shot distance with a plausible focal length and camera
-# position, so the combination always makes photographic sense.
-def get_framing():
-    framings = [
-        'extreme wide establishing shot on a 14mm ultra-wide lens, camera at eye level, everything in deep focus',
-        'wide environmental shot on a 24mm lens from a low, near-ground camera position',
-        'wide shot on a 28mm lens taken from a high vantage point looking down',
-        'wide shot on a 24mm lens from an aerial drone position well above the scene',
-        'standard 35mm reportage framing at eye level, subject off-centre',
-        'standard 50mm framing, shallow-ish depth of field, background falling away softly',
-        'medium shot on an 85mm lens, subject isolated against a soft background',
-        'tight telephoto shot on a 135mm lens, layers of the scene compressed together',
-        'long 200mm telephoto shot compressing distant elements into flat stacked planes',
-        'close detail shot at minimum focus distance, very shallow depth of field',
-        'shot framed through a doorway, window or archway, foreground darkness surrounding the scene',
-        'shot from inside a moving vehicle through the window, frame partly obstructed',
-        'over-the-shoulder framing, a person in the near foreground out of focus',
-        'waist-level framing on a 40mm lens, slightly tilted, taken quickly without looking',
-    ]
-    return random.choice(framings)
+# Composition recipes pair a viewpoint with a plausible focal length, and every
+# one of them is a way professional travel photographers make a place look its
+# most impressive - depth, scale, reflection, leading lines. Offered as a
+# shortlist for the same reason as the light: imposed, they produced viewpoints
+# that can't exist (Mount Misen behind the Miyajima torii, seen from the shore),
+# and the image model invents what it has never seen from that angle.
+FRAMINGS = [
+    'grand wide vista from an elevated viewpoint on a 16-35mm lens, layers receding from a detailed foreground to the horizon',
+    'low ultra-wide angle on a 14-20mm lens, strong foreground interest close to the camera leading the eye to the subject',
+    'aerial drone view from high above, revealing the shape and scale of the place',
+    'top-down aerial drone shot looking straight down, the subject making a graphic pattern',
+    'mirror reflection of the subject in still water, the horizon placed off-centre',
+    'telephoto compression on a 70-200mm lens, the subject stacked against layers of landscape behind it',
+    'a leading line - a road, river, path, wall or ridge - drawing the eye from the bottom corner of the frame to the subject',
+    'framed by a natural or architectural opening - an arch, a cave mouth, a window, overhanging branches',
+    'vertical composition emphasising height, the subject rising from the bottom of the frame to the top',
+    'standard 35mm lens at eye level, as a visitor first sees it on arrival, the subject placed on a third',
+]
+
+FRAMING_OPTION_COUNT = 3
 
 
-# The physical medium does more to change the look of an image than any
-# abstract style label, so this replaces the old free-floating "style" list.
+def get_framing_options(count=FRAMING_OPTION_COUNT):
+    return random.sample(FRAMINGS, count)
+
+
+# Rendering styles that read as a professional photograph with natural colour.
+# Expired film, B&W, smartphone and instant-film looks are gone - they made a
+# feed of wonders look like a feed of mistakes. "Saturated" is kept out of every
+# option: oversaturation is the first thing that makes an image read as AI.
 def get_medium_look():
     looks = [
-        'clean modern full-frame digital capture, neutral colour, very high detail',
-        'Kodak Portra 400 35mm film, soft warm skin tones, gentle grain',
-        'Kodak Gold 200 35mm film, warm yellows, slight halation in highlights',
-        'Fujifilm Velvia slide film, deeply saturated greens and blues, high contrast',
-        'Ilford HP5 black and white 35mm film, coarse grain, strong contrast',
-        'Kodak Tri-X black and white film, classic documentary grain',
-        'CineStill 800T at night, tungsten colour cast, red halation around light sources',
-        'medium format 6x7 film, extremely fine detail, smooth tonal gradation',
-        'direct on-camera flash at night, harsh foreground, dark falloff behind',
-        'expired film, shifted colours, uneven casts, light leak at one edge',
-        'instant film print, soft focus, muted washed-out palette, slight vignette',
-        '16mm documentary film still, grainy, slightly desaturated',
-        'handheld smartphone snapshot, slight motion blur, imperfect exposure',
-        'large format 4x5 view camera, immense detail, perfectly level horizon',
-        'infrared film, foliage rendered pale and luminous',
-        'long exposure on a tripod, moving elements smeared into soft trails',
+        'high-resolution full-frame mirrorless camera, crisp edge-to-edge detail, natural true-to-life colour',
+        'medium format digital camera, immense fine detail, smooth tonal gradation, rich natural colour',
+        'Fujifilm Velvia slide film, rich clean blues and greens, crisp contrast',
+        'Kodak Portra 400 film, warm soft tones, fine grain',
+        'Kodak Ektar 100 film, vivid but natural colour, ultra-fine grain',
+        'long exposure on a tripod, moving water and cloud smoothed to silk, everything still pin-sharp',
     ]
     return random.choice(looks)
 
 
 # Phrased positively on purpose. FLUX.2 doesn't process negation - "no people"
 # reliably produces people - so emptiness is described as a deserted place
-# rather than as an absence.
+# rather than as an absence. A small figure is the most common option: it's what
+# makes a landscape read as immense rather than as a hill, and posts with a
+# person in them get liked more. It only works if it reads at phone size, hence
+# the open background.
+HUMAN_PRESENCE = [
+    ('the place alone, undisturbed and deserted', 30),
+    ('one small figure, back to the camera, set against open sky, water, sand or snow so it reads clearly, showing the scale of the place', 40),
+    ('a few people far off, small and incidental', 15),
+    ('local people at the heart of the scene - a boatman, pilgrims, herders, festival-goers - absorbed in what they are doing', 15),
+]
+
+
 def get_human_presence():
-    presence = [
-        'completely deserted, the empty setting alone',
-        'a single person small in the frame, incidental, back turned to the camera',
-        'one person as the clear subject, an unposed environmental portrait, aware of the camera',
-        'one person absorbed in a task, unaware of the camera',
-        'two or three people mid-conversation or mid-activity',
-        'a small group working or eating together',
-        'a busy crowd filling the frame, many partial faces',
-        'deserted, with fresh traces of someone who has just left - a tool set down, a door left open',
-    ]
-    return random.choice(presence)
+    presence = [option for option, _ in HUMAN_PRESENCE]
+    weights = [weight for _, weight in HUMAN_PRESENCE]
+    return random.choices(presence, weights=weights, k=1)[0]
 
 
-# Fame tiers are weighted away from the obvious landmark. Without this the model
-# returns the same handful of postcard sites for every country. The top tier is
-# kept deliberately - a feed of nothing but obscure places has no anchor, and
-# the famous sites are what people recognise and stop for.
+# Every tier has to be spectacular - the tiers vary how well known the place is,
+# never how good it looks. The famous wonders are what people recognise and stop
+# for; the lesser-known ones are what make them follow ("where is this?").
 FAME_TIERS = [
-    ('one of the handful of internationally famous sites the country is actually known for - the capital\'s landmark quarter, the national monument, the view on the cover of the guidebook', 10),
-    ('a well-known place that domestic tourists would recognise, but not the top international landmark', 25),
-    ('somewhere known mainly within its own region or province', 35),
-    ('an entirely ordinary, unremarkable place with no fame at all - the kind of spot nobody photographs', 30),
+    ('one of the world-famous wonders this country is known for - the landmark or landscape on the cover of its guidebook', 35),
+    ('a spectacular place that well-travelled photographers know but most people abroad have never heard of - every bit as striking as the famous sites, the kind of view that makes someone ask "where is this?"', 45),
+    ('a beautiful place famous within the country itself, where domestic travellers go for the view, but rarely seen abroad', 20),
 ]
 
 
@@ -134,28 +133,32 @@ def get_fame_tier():
     return random.choices(tiers, weights=weights, k=1)[0]
 
 
+def is_landmark_tier(tier):
+    return tier == FAME_TIERS[0][0]
+
+
 def get_shot_category():
     shot_categories = [
-        "Iconic Landmarks & Cityscape",
-        "Urban Street Life",
-        "Small Town/Village",
-        "Nature & Landscape",
-        "Mountains",
-        "Beach & Coast",
-        "Wildlife & Animals",
-        "Countryside/Rural Life",
-        "Cultural & Historical Sites",
-        "Local Food & Markets",
-        "People & Everyday Culture",
-        "Work & Trade",
-        "Transport & Roads",
-        "Religion & Ritual",
-        "Sport & Play",
-        "Homes & Interiors",
-        "Festivals & Celebration",
-        "Water & Rivers",
-        "Industry & Infrastructure",
-        "Night Life After Dark",
+        "Iconic Landmark or Monument",
+        "Ancient Ruins & Archaeological Sites",
+        "Temples, Mosques, Cathedrals & Monasteries",
+        "Palaces, Castles & Fortresses",
+        "Historic Old Town or Village",
+        "City Skyline or Waterfront",
+        "Mountains & High Peaks",
+        "Coastline, Sea Cliffs & Beaches",
+        "Islands, Reefs & Lagoons",
+        "Waterfalls, Rivers & Gorges",
+        "Lakes & Glaciers",
+        "Deserts & Dunes",
+        "Forests, Jungles & Rainforest",
+        "Volcanic & Geothermal Landscapes",
+        "Canyons, Caves & Rock Formations",
+        "Terraced Fields, Plantations & Cultivated Landscapes",
+        "Wildlife in its Natural Habitat",
+        "Festivals & Celebrations",
+        "Night Sky over a Landscape",
+        "Bridges, Roads & Railways through Dramatic Scenery",
     ]
     return random.choice(shot_categories)
 
@@ -166,51 +169,38 @@ def get_shot_category():
 # only the angle still produces a feed where every post has the same silhouette,
 # which reads as templated however good the writing is.
 
+# Every angle is something a person looking at a wonder would actually want to
+# know. The old list was written for deliberately ordinary places - the
+# economics of a loading bay, the routine of whoever walks past it - and
+# produced captions about drainage and motorbike parking.
 CAPTION_ANGLES = [
     'one surprising fact about this place, stated flatly and then explained',
-    'where the name of this place came from and what it originally meant',
+    'the scale of this place made concrete with a number or comparison that changes how the photo reads',
+    'how this place was formed or built - the forces, the people, how long it took',
+    'the legend, myth or belief attached to this place, and what is actually true behind it',
+    'a record this place holds - oldest, largest, deepest, highest, only - and what it means in practice',
+    'where the name came from and what it originally meant',
     'one specific thing that happened here, told as a short story',
-    'why the place is built or shaped the way it is - the practical reason behind what is visible',
-    'a local custom, rule or etiquette around this place that an outsider would get wrong',
-    'the scale of what is here, made concrete with a number or a comparison that changes how the photo reads',
-    'the unnamed person whose daily routine runs through this place, and what their day around it looks like',
-    'what this place was before it was this, and what changed it',
+    'what this place was before it became famous, and what changed',
+    'the detail most visitors walk straight past, and why it is there',
     'a widely held assumption about this place that turns out to be wrong',
-    'the small detail in the frame most people would walk straight past, and why it is there',
-    'the gap between how the people who live here use this place and how visitors assume it is used',
-    'what this place is like at a completely different hour or season from the one photographed',
-    'a word or phrase used here that English has no clean equivalent for',
-    'the economics of what is in the frame - who pays for it, who profits, where it ends up',
-    'what sits just outside the frame, and why it matters to what is inside it',
+    'how close this place came to being lost or destroyed, and what saved it',
+    'the moment, hour or season when this place is at its best, and why',
 ]
 
+# Every shape opens with the hook alone on the first line. Instagram shows
+# little more than that before "more", and a hook run straight into a paragraph
+# spends the preview on half a sentence. None ends on a "turn" - asked for one,
+# the model writes an aphorism ("The drama is structural, not symbolic.").
 CAPTION_SHAPES = [
-    'one unbroken paragraph, no line breaks at all, opening on a short sentence and then running quickly',
-    'a single blunt line on its own, a blank line, then one paragraph that pays it off',
-    'three short beats, each on its own line, no paragraph anywhere',
-    'a statement that sounds wrong, a blank line, then the explanation that makes it true',
-    'a bare number or year alone on the first line, then the context underneath it - only if the researched material actually contains one, otherwise a short flat statement on that first line instead',
-    'two lines of setup, a blank line, then one short line that turns it',
-    'three related details listed one per line, no preamble and no conclusion',
-    'one very short line, then one long winding sentence that unpacks it',
-    'a question in the first line answered immediately in the second, then a paragraph that complicates the answer',
+    'the hook alone on the first line, a blank line, then one paragraph that pays it off',
+    'the hook alone on the first line, a blank line, then three short beats, each on its own line',
+    'a statement that sounds wrong alone on the first line, a blank line, then the explanation that makes it true',
+    'the hook alone on the first line, a blank line, then what happened, told in two or three short sentences',
+    'the hook alone on the first line, a blank line, then three related details listed one per line, no conclusion',
 ]
 
 RECENT_ANGLE_WINDOW = 8
-CAPTION_QUESTION_RATE = 0.33
-
-# An engagement question every post becomes its own tic, so it is sampled too.
-CAPTION_QUESTION_INSTRUCTION = (
-    "End on one genuine question about the specific thing this caption is "
-    "about - something a reader could actually answer or hold an opinion "
-    "about. No rhetorical questions, nothing abstract, nothing about how the "
-    "reader feels. Not \"have you been?\", not \"would you visit?\", and not a "
-    "request to comment, save or share. If no real question comes out of this "
-    "material, end on the content instead rather than forcing one.")
-
-CAPTION_NO_QUESTION_INSTRUCTION = (
-    "Do not end with a question, and do not ask anybody to comment, save or "
-    "share. End on the content itself.")
 
 
 def get_caption_angle(recent_angles=None):
@@ -225,10 +215,6 @@ def get_caption_angle(recent_angles=None):
 
 def get_caption_shape():
     return random.choice(CAPTION_SHAPES)
-
-
-def should_ask_question():
-    return random.random() < CAPTION_QUESTION_RATE
 
 
 POPULAR_COUNTRIES = {
@@ -259,6 +245,45 @@ def get_random_country(fileName, recent_countries=None):
                for country, w in zip(countries, weights)]
 
     return random.choices(countries, weights=weights, k=1)[0]
+
+
+# The scout ranks its own candidates for visual impact. Picking at random from
+# all twelve let the weakest ideas through as often as the best; always taking
+# the top one would bring back the model's favourite. Random among the top few
+# keeps both the quality and the spread.
+TOP_CANDIDATES = 4
+
+
+def pick_candidate(candidates, top=TOP_CANDIDATES, exists=None, used_locations=()):
+    """One of the strongest candidates, skipping any that `exists` rejects.
+
+    A convincing photograph of a place that doesn't exist is the one thing this
+    account must never post - people plan trips around travel photos. If every
+    check fails it's more likely the geocoder is down than that all four places
+    are invented, so a candidate is still returned rather than losing the post.
+    """
+    # The scout is told which places have been posted, but a repeat costs
+    # nothing to catch here as well
+    used = {location.strip().lower() for location in used_locations}
+    fresh = [c for c in candidates if c["location"].strip().lower() not in used]
+    pool = fresh or list(candidates)
+
+    # Shuffled before the (stable) sort so ties at the cut-off aren't settled by
+    # the order the model happened to list them in
+    random.shuffle(pool)
+    ranked = sorted(pool, key=lambda c: c["visual_impact"], reverse=True)[:top]
+    random.shuffle(ranked)
+
+    if exists is None:
+        return ranked[0]
+
+    for candidate in ranked:
+        if exists(candidate["location"]):
+            return candidate
+        print(f"Couldn't find {candidate['location']!r} on a map - skipping it")
+
+    print("No candidate could be found on a map - using one anyway")
+    return ranked[0]
 
 
 def load_prompts(config_file="data/prompts.json"):
@@ -341,6 +366,20 @@ def format_exclusions(used_locations, recent_subjects):
     return "\n\n".join(lines)
 
 
+# Instagram's portrait feed size. A 4:5 post takes a quarter more of the screen
+# than a square one, and at exactly this size neither instagrapi nor Instagram
+# needs to resize or crop it. instagrapi still re-encodes the JPEG at Pillow's
+# default quality before upload, so the high-quality save here just avoids
+# stacking a second lossy pass on top of that.
+INSTAGRAM_SIZE = (1080, 1350)
+
+
+def fit_for_instagram(imageFileName, size=INSTAGRAM_SIZE):
+    with Image.open(imageFileName) as image:
+        image = ImageOps.fit(image.convert("RGB"), size, Image.Resampling.LANCZOS)
+        image.save(imageFileName, "JPEG", quality=95, subsampling=0)
+
+
 def handle_image_generation(image_model, prompt, imageFileName):
     generatedImageLink = image_model.generate_image(prompt)
     print("\nImage generated -> ", generatedImageLink)
@@ -349,6 +388,8 @@ def handle_image_generation(image_model, prompt, imageFileName):
     os.makedirs(os.path.dirname(imageFileName) or ".", exist_ok=True)
     urllib.request.urlretrieve(
         generatedImageLink, imageFileName)
+
+    fit_for_instagram(imageFileName)
 
     return imageFileName
 
@@ -404,8 +445,31 @@ def _read_caption(text_model, prompt):
     return body, hashtags or inline_hashtags
 
 
+def with_country(location, country):
+    """The scout writes locations as "Place, Country", sometimes spelling the
+    country differently from countryList.txt ("USA", "Côte d'Ivoire"). Only a
+    bare place name gets the country added, or it would appear twice."""
+    if "," in location or country.lower() in location.lower():
+        return location
+
+    return f"{location}, {country}"
+
+
+def alt_text(subject, location, country):
+    """Instagram's alt text is read by screen readers and by Instagram search.
+    The scout's subject line is already a plain description of the frame."""
+    return f"{subject.rstrip('.')}. {with_country(location, country)}."
+
+
+def location_line(location, country):
+    """The pin line under the caption. Travel accounts put the place there so
+    it can be read at a glance - and so it's searchable text, which a geotag
+    alone isn't."""
+    return f"\U0001F4CD {with_country(location, country)}"
+
+
 def generate_caption(text_model, prompts, *, location, country, subject,
-                     shot_category, angle, shape, ask_question):
+                     shot_category, angle, shape):
     facts = research_caption_facts(
         text_model, prompts, location, country, subject)
     print(f"Researched {len(facts)} caption facts -> ", facts)
@@ -413,8 +477,7 @@ def generate_caption(text_model, prompts, *, location, country, subject,
     prompt = prompts['caption_prompt'].format(
         chosenLocation=location, subject=subject, shotCategory=shot_category,
         facts=format_facts(facts), captionAngle=angle, captionShape=shape,
-        questionInstruction=(CAPTION_QUESTION_INSTRUCTION if ask_question
-                             else CAPTION_NO_QUESTION_INSTRUCTION))
+        hashtagCount=DEFAULT_HASHTAG_COUNT)
 
     # The banned constructions can't be stripped the way a stray adjective can,
     # because the sentence is built around them - the caption has to be written
@@ -436,7 +499,8 @@ def generate_caption(text_model, prompts, *, location, country, subject,
             print("Caption still not clean, posting it anyway -> ",
                   caption_issues(body, facts))
 
-    caption = f"{clean_caption(body)}\n\n\n{normalise_hashtags(hashtags)}"
+    caption = (f"{clean_caption(body)}\n\n{location_line(location, country)}\n\n"
+               f"{normalise_hashtags(hashtags)}")
 
     print("Caption generated -> ", caption)
 

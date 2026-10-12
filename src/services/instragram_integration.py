@@ -1,8 +1,14 @@
+from geopy.distance import distance
 from instagrapi.exceptions import LoginRequired
 from instagrapi import Client
 from pathlib import Path
+from utils.geo import geocode
 import json
 import os
+
+# A place Instagram returns further than this from where the location actually
+# geocodes to is a different place that happens to share a word with it.
+MAX_PLACE_DISTANCE_KM = 75
 
 
 def login_user():
@@ -62,47 +68,73 @@ def login_user():
     raise Exception("Couldn't login user with either password or session")
 
 
+def _is_match(place, query, coords):
+    # Queries are "Place, Country"; Instagram usually names a place without
+    # the country
+    names = {query.strip().lower(), query.rsplit(",", 1)[0].strip().lower()}
+    if place.name and place.name.strip().lower() in names:
+        return True
+
+    if place.lat is None or place.lng is None:
+        return False
+
+    return distance(coords, (place.lat, place.lng)).km <= MAX_PLACE_DISTANCE_KM
+
+
 def find_location(cl, *queries):
     """Return the first place Instagram can find, trying each query in turn.
 
-    Posts now favour obscure locations, so a search returning nothing - or
-    fewer results than expected - is normal rather than exceptional. Falling
-    back to a broader query beats losing the geotag or the whole upload.
+    fbsearch_places() searches around New York unless it's given coordinates,
+    so an unfamiliar name used to come back as whatever Manhattan venue shared
+    a word with it - a Thai village was tagged "East Village". Each query is
+    geocoded first, searched around those coordinates, and a result is only
+    accepted if it's actually near them. Falling back to a broader query beats
+    tagging the wrong place.
     """
     for query in queries:
         if not query:
             continue
 
+        coords = geocode(query)
+        if not coords:
+            print(f"Couldn't geocode {query!r}")
+            continue
+
         try:
-            places = cl.fbsearch_places(query)
+            places = cl.fbsearch_places(query, lat=coords[0], lng=coords[1])
         except Exception as e:
             print(f"Location search failed for {query!r}: ", e)
             continue
 
-        if places:
-            print(f"Matched {query!r} -> {places[0]}")
-            return places[0]
+        for place in places:
+            if _is_match(place, query, coords):
+                print(f"Matched {query!r} -> {place}")
+                return place
 
-        print(f"No location match for {query!r}")
+        print(f"No location match for {query!r} near {coords}")
 
     return None
 
 
-def upload_photo(imagePath, caption, location, fallback_location=None):
+def upload_photo(imagePath, caption, location, fallback_location=None, alt_text=None):
     cl = login_user()
 
     place = find_location(cl, location, fallback_location)
+
+    extra_data = {"custom_accessibility_caption": alt_text} if alt_text else {}
 
     if place:
         cl.photo_upload(
             path=imagePath,
             caption=caption,
-            location=place
+            location=place,
+            extra_data=extra_data
         )
     else:
         cl.photo_upload(
             path=imagePath,
-            caption=caption
+            caption=caption,
+            extra_data=extra_data
         )
 
     print(f"Location photo uploaded with = {place}")

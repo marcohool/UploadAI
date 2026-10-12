@@ -1,18 +1,19 @@
 # UploadAI
-UploadAI is a Python application which automatically generates and posts AI-generated images to Instagram. It creates unique image prompts, generates photorealistic images based on these prompts, and uploads them to Instagram with relevant captions and hashtags. The program is scheduled to run twice daily.
+UploadAI is a Python application which automatically generates and posts AI-generated images to Instagram. It picks a spectacular place in a different country each time, generates a photorealistic image of it at its best, and uploads it with a caption built around one surprising, true fact about the place. The program runs four times a week.
 
 Follow the page [here](https://www.instagram.com/worldswondersai/)!
 
-* Leverages OpenAI's GPT-4o to write prompts and captions, and FLUX.2 [pro] (via Replicate) for photorealistic image creation.
-* Picks locations in two stages: the model proposes 12 candidate subjects spread across the country's regions, and one is chosen at random. Asking for a single location just returns the country's most famous landmark almost every time.
-* Samples the photographic parameters in Python rather than leaving them to the model - shot category, fame tier, light, weather, lens and framing, film stock and human presence are drawn independently, giving a very large space of distinct looks.
-* Weights location choice away from the obvious postcard shot: only ~10% of posts target a country's best-known international landmark, ~30% an entirely ordinary place.
-* Keeps a post history (`data/history.json`) so a location is never reused, recent subjects aren't repeated, and recently-used countries are damped down.
+* Leverages OpenAI's GPT-5.5 to scout locations, write image prompts and research and write captions, and FLUX (via Replicate) for photorealistic image creation. World-famous landmarks go to FLUX 3, whose grounding looks the place up with web and image search before drawing it, so they come out recognisable rather than as a generic version of their category. Everything else goes to FLUX.2 [pro], which won blind comparisons on scroll-stopping appeal. Set `landmark_flux_model` in `config.json` to use one model for everything.
+* Picks locations in two stages: the model proposes 12 candidate subjects and scores each for visual impact, and one of the top four is chosen at random. Asking for a single location just returns the country's most famous landmark almost every time; picking from all twelve lets the weakest ideas through.
+* Every candidate has to be genuinely spectacular. The fame tier varies how well known the place is, never how good it looks: ~35% of posts are a country's world-famous wonders, ~45% are places just as striking that most people abroad have never heard of, ~20% are places famous within the country itself.
+* Samples the photographic parameters in Python rather than leaving them to the model - shot category, rendering and human presence are drawn independently. Composition and light are each offered as a shortlist of three, and the model picks whichever is a real vantage point and plausible for that place and season, so there's no snow in the tropics, aurora at the equator or mountain behind a landmark that can't be seen from there.
+* Keeps a post history (`data/state/history.json`) so a location is never reused, recent subjects aren't repeated, and recently-used countries are damped down.
 * Strips filler adjectives, editorial closing sentences and negation from generated prompts before they reach the image model.
+* Researches facts about the place before writing the caption, and rewrites captions that contain numbers that weren't in the research, or that ask people to save, share, tag or comment (which stops Instagram recommending the post).
+* Posts at 4:5 portrait (1080x1350) with a location line, five targeted hashtags (Instagram's cap) and alt text.
 * Automatically posts to Instagram using `instagrapi`.
-* Adds location tags to Instagram posts using `geopy`.
-* Runs three times a day at specified times.
-* Supports `--dry-run` to generate an image and caption locally without posting, for previewing output quality.
+* Geotags posts by geocoding the place with `geopy` and only accepting an Instagram location that's actually near it.
+* Supports `--dry-run` to generate an image and caption locally without posting, for previewing output quality. `--output path/to/image.jpg` writes the image there, with a `.json` of everything that went into the post beside it.
 
 ![image](https://github.com/marcohool/UploadAI/assets/64811388/436d6bbd-7545-4fa3-a915-32b2ae88e284)
 
@@ -64,7 +65,7 @@ docker compose up -d --build
 
 ## Requirements
 * OpenAI API key
-* Replicate API token (for FLUX.2 [pro] image generation)
+* Replicate API token (for FLUX image generation - roughly $0.045 an image on FLUX.2 [pro] at 2 MP and $0.10 on FLUX 3 at 1.5k)
 * Instagram account credentials
 * Python 3.9+
 * Required Python libraries (as listed in `requirements.txt`)
