@@ -216,6 +216,11 @@ _BANNED_CONSTRUCTIONS = [
     (r"(?:^|[.!?]\s+|\n\s*)(?:save|bookmark|share|send|tag|follow|comment|double[- ]tap)\b",
      "a request to save, share, tag, comment or follow - Instagram stops recommending posts that ask for engagement"),
     (r";", "semicolons - split them into separate sentences"),
+    # The caption is written from a list of researched facts, and the model
+    # sometimes talks about the list itself ("its name story isn't in the
+    # source") - which tells readers how the post was made
+    (r"\b(?:in|from) the (?:source|sources|research|researched material|material|list)\b|\bresearched material\b",
+     "a reference to the researched material itself - write as if from knowledge, never about the source"),
 ]
 
 _TRAILING_HASHTAGS = re.compile(r'(?:\s*#[^\s#]+)+\s*$')

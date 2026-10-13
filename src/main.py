@@ -2,9 +2,10 @@ import argparse
 import json
 from dotenv import load_dotenv
 from pathlib import Path
-from services.instragram_integration import upload_photo
+from services.instragram_integration import upload_post
 from services.openai_model import OpenAIModel
-from services.flux_model import FluxModel
+from services.image_model import ImageModel
+from utils.carousel import build_carousel
 from utils.geo import geocode
 from utils.data_helpers import (
     alt_text,
@@ -23,7 +24,6 @@ from utils.data_helpers import (
     get_recent_countries,
     get_shot_category,
     handle_image_generation,
-    is_landmark_tier,
     load_config,
     load_history,
     load_prompts,
@@ -39,18 +39,14 @@ dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
 
 config = load_config()
-openAi = OpenAIModel(model=config['openai_model'])
-flux = FluxModel(model=config['flux_model'], inputs=config.get('flux_inputs'))
-
-# World-famous wonders go to a second model when one is configured. In blind
-# tests FLUX 3's grounding (it looks the place up before drawing) won on
-# accuracy 23 times out of 28 - FLUX.2 drew Kronborg as a red-brick castle and
-# Victoria Falls as a horseshoe - but FLUX.2 won on scroll-stopping appeal by
-# the same margin. Accuracy matters most where viewers know what the place
-# really looks like, so that's where the grounded model is used.
-landmark_flux = (FluxModel(model=config['landmark_flux_model'],
-                           inputs=config.get('landmark_flux_inputs'))
-                 if config.get('landmark_flux_model') else flux)
+openAi = OpenAIModel(model=config['openai_model'],
+                     reasoning_effort=config.get('openai_reasoning_effort'))
+# Nano Banana 2.1 looks the place up with Google Search before drawing it. In
+# blind tests on the same prompts it ranked best for accuracy to the real place
+# and joint best for appeal, ahead of FLUX.2 [pro] and FLUX 3, at less than
+# either costs.
+image_model = ImageModel(model=config['image_model'], inputs=config.get('image_inputs'),
+                         reference_input=config.get('image_reference_input'))
 
 
 prompts = load_prompts()
@@ -122,9 +118,16 @@ def main(dry_run=False, image_path="assets/generatedImage.jpg"):
         print("Got prompt -> ", image_prompt)
 
         # Generate image
-        image_model = landmark_flux if is_landmark_tier(fameTier) else flux
-        print("Got image model -> ", image_model.model)
         handle_image_generation(image_model, image_prompt, image_path)
+
+        # The rest of the carousel - more photographs of the same place
+        slides = build_carousel(openAi, prompts, image_model,
+                                location=chosen_location, country=randomCountry,
+                                hero_prompt=image_prompt, cover_path=image_path,
+                                count=config.get('carousel_slides', 1) - 1)
+        image_paths = [image_path] + [slide['path'] for slide in slides]
+        alt_texts = ([alt_text(candidate['subject'], chosen_location, randomCountry)]
+                     + [slide['alt'] for slide in slides])
 
         # The caption is written from the place itself, not from the image
         # prompt - describing the photo to somebody already looking at it is
@@ -150,16 +153,15 @@ def main(dry_run=False, image_path="assets/generatedImage.jpg"):
                     "framing": framing, "medium_look": mediumLook,
                     "human_presence": humanPresence, "caption_angle": captionAngle,
                     "caption_shape": captionShape, "image_prompt": image_prompt,
-                    "caption": caption,
+                    "slides": slides, "caption": caption,
                 }, f, indent=2, ensure_ascii=False)
             return
 
         # Upload photo. chosen_location already ends with the country, so it's
         # used as-is, with the bare country as a fallback for obscure places
         # Instagram has never heard of.
-        upload_photo(image_path, caption,
-                     chosen_location, randomCountry,
-                     alt_text=alt_text(candidate['subject'], chosen_location, randomCountry))
+        upload_post(image_paths, caption,
+                    chosen_location, randomCountry, alt_texts=alt_texts)
 
         # Only record the post once it's actually live, so a failed run doesn't
         # burn a location

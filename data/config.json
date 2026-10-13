@@ -1,20 +1,13 @@
 {
-    "openai_model": "gpt-5.5",
-    "flux_model": "black-forest-labs/flux-2-pro",
-    "flux_inputs": {
+    "openai_model": "gpt-6-luna",
+    "carousel_slides": 1,
+    "image_model": "google/nano-banana-2.1",
+    "image_inputs": {
         "aspect_ratio": "4:5",
-        "resolution": "2 MP",
-        "output_format": "jpg",
-        "output_quality": 95,
-        "safety_tolerance": 2
+        "resolution": "1K",
+        "google_search": true,
+        "image_search": true,
+        "output_format": "jpg"
     },
-    "landmark_flux_model": "black-forest-labs/flux-3-image",
-    "landmark_flux_inputs": {
-        "aspect_ratio": "4:5",
-        "resolution": "1.5k",
-        "grounding": true,
-        "output_format": "jpg",
-        "output_quality": 95,
-        "safety_tolerance": 2
-    }
+    "image_reference_input": "image_input"
 }

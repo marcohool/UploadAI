@@ -8,8 +8,7 @@ MIN_REQUEST_INTERVAL = 1.0
 _last_request = 0.0
 
 
-def geocode(query):
-    """Coordinates for a place name, or None if it can't be found."""
+def _lookup(query):
     global _last_request
 
     wait = MIN_REQUEST_INTERVAL - (time.monotonic() - _last_request)
@@ -24,3 +23,19 @@ def geocode(query):
         return None
 
     return (result.latitude, result.longitude) if result else None
+
+
+def geocode(query):
+    """Coordinates for a place name, or None if it can't be found.
+
+    Locations are written "Place, Country", and some country names in
+    countryList.txt aren't ones OpenStreetMap knows ("Sistine Chapel, Holy See"
+    finds nothing; "Sistine Chapel" does), so the place is tried on its own
+    when the full name fails.
+    """
+    coords = _lookup(query)
+
+    if coords is None and "," in query:
+        coords = _lookup(query.rsplit(",", 1)[0].strip())
+
+    return coords

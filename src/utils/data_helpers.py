@@ -97,8 +97,8 @@ def get_medium_look():
     return random.choice(looks)
 
 
-# Phrased positively on purpose. FLUX.2 doesn't process negation - "no people"
-# reliably produces people - so emptiness is described as a deserted place
+# Phrased positively on purpose. Image models handle negation badly - "no
+# people" reliably produces people - so emptiness is described as a deserted place
 # rather than as an absence. A small figure is the most common option: it's what
 # makes a landscape read as immense rather than as a hill, and posts with a
 # person in them get liked more. It only works if it reads at phone size, hence
@@ -131,10 +131,6 @@ def get_fame_tier():
     tiers = [tier for tier, _ in FAME_TIERS]
     weights = [weight for _, weight in FAME_TIERS]
     return random.choices(tiers, weights=weights, k=1)[0]
-
-
-def is_landmark_tier(tier):
-    return tier == FAME_TIERS[0][0]
 
 
 def get_shot_category():
@@ -380,8 +376,8 @@ def fit_for_instagram(imageFileName, size=INSTAGRAM_SIZE):
         image.save(imageFileName, "JPEG", quality=95, subsampling=0)
 
 
-def handle_image_generation(image_model, prompt, imageFileName):
-    generatedImageLink = image_model.generate_image(prompt)
+def handle_image_generation(image_model, prompt, imageFileName, reference_path=None):
+    generatedImageLink = image_model.generate_image(prompt, reference_path=reference_path)
     print("\nImage generated -> ", generatedImageLink)
 
     # Download image

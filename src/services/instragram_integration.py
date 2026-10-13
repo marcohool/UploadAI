@@ -116,25 +116,38 @@ def find_location(cl, *queries):
     return None
 
 
-def upload_photo(imagePath, caption, location, fallback_location=None, alt_text=None):
+def _album_configure_with_alt_text(cl, alt_texts):
+    """album_upload has no per-slide options, but it takes a configure handler -
+    this one gives each slide its own alt text before configuring the album."""
+    def configure(childs, caption, usertags, location, extra_data={}):
+        childs = [{**child, "custom_accessibility_caption": alt} if alt else child
+                  for child, alt in zip(childs, alt_texts)]
+        return cl.album_configure(childs, caption, usertags, location,
+                                  extra_data=extra_data)
+
+    return configure
+
+
+def upload_post(image_paths, caption, location, fallback_location=None, alt_texts=()):
+    """Post a single photo, or a carousel when there's more than one image."""
     cl = login_user()
 
     place = find_location(cl, location, fallback_location)
+    alt_texts = list(alt_texts) + [None] * (len(image_paths) - len(alt_texts))
 
-    extra_data = {"custom_accessibility_caption": alt_text} if alt_text else {}
-
-    if place:
+    if len(image_paths) == 1:
         cl.photo_upload(
-            path=imagePath,
+            path=image_paths[0],
             caption=caption,
             location=place,
-            extra_data=extra_data
+            extra_data={"custom_accessibility_caption": alt_texts[0]} if alt_texts[0] else {}
         )
     else:
-        cl.photo_upload(
-            path=imagePath,
+        cl.album_upload(
+            paths=image_paths,
             caption=caption,
-            extra_data=extra_data
+            location=place,
+            configure_handler=_album_configure_with_alt_text(cl, alt_texts)
         )
 
-    print(f"Location photo uploaded with = {place}")
+    print(f"Uploaded {len(image_paths)} image(s) with location = {place}")
