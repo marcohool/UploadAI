@@ -13,21 +13,25 @@ from utils.data_helpers import (
     generate_caption,
     get_caption_angle,
     get_caption_shape,
+    get_category_options,
     get_exclusions,
     get_fame_tier,
     get_framing_options,
     get_human_presence,
     get_light_options,
     get_medium_look,
+    get_pillar,
     get_random_country,
     get_recent_caption_angles,
+    get_recent_categories,
     get_recent_countries,
-    get_shot_category,
     handle_image_generation,
     load_config,
     load_history,
     load_prompts,
+    match_category,
     pick_candidate,
+    PILLARS,
     save_history_entry,
 )
 from utils.json_processing import process_dalle_prompt_request, process_location_candidates
@@ -56,27 +60,33 @@ def main(dry_run=False, image_path="assets/generatedImage.jpg"):
     try:
         history = load_history()
 
+        # What kind of post this is - nature, a city, a landmark or a
+        # spectacle - one of each every four posts
+        pillar, pillarRound = get_pillar(history)
+        print(f"Got pillar -> {pillar} (round {pillarRound})")
+
         # Get random country to generate image of, damping down countries used
         # in the last handful of posts
         randomCountry = get_random_country(
-            "data/countryList.txt", recent_countries=get_recent_countries(history))
+            "data/countryList.txt", recent_countries=get_recent_countries(history),
+            skip=PILLARS[pillar].get('skip_countries', ()))
         print("Got country -> ", randomCountry)
 
         # Sample the photographic parameters here rather than letting the model
         # choose them - left to itself it picks the same ones every time
-        shotCategory = get_shot_category()
+        categoryOptions = get_category_options(pillar, get_recent_categories(history))
         fameTier = get_fame_tier()
-        lightOptions = get_light_options()
-        framingOptions = get_framing_options()
-        mediumLook = get_medium_look()
-        humanPresence = get_human_presence()
+        lightOptions = get_light_options(pillar)
+        framingOptions = get_framing_options(pillar)
+        mediumLook = get_medium_look(pillar)
+        humanPresence = get_human_presence(pillar)
 
         # Same reasoning for the caption: what it says and how it sits on the
         # screen are both sampled, so consecutive posts don't share a template
         captionAngle = get_caption_angle(get_recent_caption_angles(history))
         captionShape = get_caption_shape()
 
-        print("Got shot category -> ", shotCategory)
+        print("Got category options -> ", categoryOptions)
         print("Got fame tier -> ", fameTier)
         print("Got light options -> ", lightOptions)
         print("Got framing options -> ", framingOptions)
@@ -90,7 +100,9 @@ def main(dry_run=False, image_path="assets/generatedImage.jpg"):
         # most obvious landmark almost every time.
         used_locations, recent_subjects = get_exclusions(history, randomCountry)
         candidates_json = openAi.get_text_response(1.2, prompts['location_candidates_prompt'].format(
-            randomCountry=randomCountry, shotCategory=shotCategory, fameTier=fameTier,
+            randomCountry=randomCountry, pillarBrief=PILLARS[pillar]['brief'],
+            categoryOptions="\n".join(f"- {option}" for option in categoryOptions),
+            fameTier=fameTier,
             exclusions=format_exclusions(used_locations, recent_subjects)))
 
         candidates = process_location_candidates(candidates_json)
@@ -99,10 +111,15 @@ def main(dry_run=False, image_path="assets/generatedImage.jpg"):
             used_locations=used_locations)
         print(f"Picked 1 of {len(candidates)} candidates -> ", candidate)
 
+        # The scout says which of the shortlisted categories the pick fits
+        shotCategory = match_category(candidate.get('category'), categoryOptions)
+        print("Got shot category -> ", shotCategory)
+
         # Stage 2: describe that exact photograph
         image_prompt_json = openAi.get_text_response(1.0, prompts['image_prompt_template'].format(
             chosenLocation=candidate['location'], subject=candidate['subject'],
-            whySpectacular=candidate['why_spectacular'], shotCategory=shotCategory,
+            whySpectacular=candidate['why_spectacular'],
+            pillarBrief=PILLARS[pillar]['brief'], shotCategory=shotCategory,
             lightOptions="\n".join(f"- {option}" for option in lightOptions),
             framingOptions="\n".join(f"- {option}" for option in framingOptions),
             mediumLook=mediumLook, humanPresence=humanPresence))
@@ -147,7 +164,9 @@ def main(dry_run=False, image_path="assets/generatedImage.jpg"):
             with open(Path(image_path).with_suffix(".json"), "w") as f:
                 json.dump({
                     "country": randomCountry, "location": chosen_location,
-                    "candidate": candidate, "shot_category": shotCategory,
+                    "candidate": candidate, "pillar": pillar,
+                    "pillar_round": pillarRound,
+                    "shot_category": shotCategory,
                     "fame_tier": fameTier, "image_model": image_model.model,
                     "light_condition": light_condition,
                     "framing": framing, "medium_look": mediumLook,
@@ -169,6 +188,8 @@ def main(dry_run=False, image_path="assets/generatedImage.jpg"):
             "country": randomCountry,
             "location": candidate['location'],
             "subject": candidate['subject'],
+            "pillar": pillar,
+            "pillar_round": pillarRound,
             "shot_category": shotCategory,
             "caption_angle": captionAngle,
         })

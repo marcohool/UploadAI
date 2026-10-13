@@ -25,43 +25,34 @@ from utils.prompt_cleanup import (DEFAULT_HASHTAG_COUNT, caption_issues,
 # in good light on a flattering medium - and that is exactly how the feed looked.
 
 
-# Light and weather are one axis, offered as a shortlist the model chooses from.
-# Sampled independently and imposed, they produced snow in Hoi An and fog-bound
-# night shots of courtyards. The model knows which of a few beautiful options is
-# plausible for this place and season; it just mustn't pick from all of them, or
-# it picks golden hour every time.
-LIGHT_CONDITIONS = [
-    'first light, the sun just clearing the horizon and raking low across the subject',
-    'golden hour, warm low sun lighting the subject from the side',
-    'sunset, the sky lit up with colour in high broken cloud',
-    'blue hour just after sunset, a deep blue sky with lights just switched on',
-    'soft early morning, mist lying in the valleys and over water',
-    'a clearing storm, shafts of sunlight breaking through dark cloud onto the subject',
-    'bright clear day, deep blue sky, clear true colour in water and foliage',
-    'soft overcast light after rain, wet rock and rich deep greens',
-    'clear night, the Milky Way overhead, the landscape faintly lit by starlight',
-    'fresh snow under a clear sky, crisp cold light',
-    'the aurora overhead, green curtains reflected in the landscape below',
-    'low cloud wrapping the peaks and towers, sunlight breaking through above it',
-    'a sea of cloud filling the valleys below, the subject rising clear above it in early light',
-    'warm late afternoon light at the peak of autumn colour',
-    'spring, the landscape in blossom or full fresh green, under soft bright light',
-]
+# --- Content pillars ---------------------------------------------------------
+# Every post belongs to one of four kinds - nature, a city, a landmark or a
+# spectacle - and the kinds take turns, one of each in every four posts. Drawing a shot category at random from
+# one flat list made nature two posts in three, because most of the categories
+# were landscapes, and every light, composition and people option was written
+# for landscapes too. Even a city post came out as a deserted view at dawn with
+# one hiker in it, so six posts in a row looked like the same mountain trip.
+#
+# Each pillar has its own categories, light, compositions, renderings and
+# people, because what makes a city photograph (lit windows after rain, the
+# life of the street) is nothing like what makes a mountain one (mist in the
+# valleys, a figure for scale). Light and composition are still offered as a
+# shortlist the model picks a plausible option from. Imposed outright, they
+# produced snow in Hoi An and viewpoints that can't exist, and left to choose
+# freely the model picks golden hour every time.
+#
+# Every option has to be capable of a photograph worth stopping for. The
+# account is called World's Wonders: variety comes from which wonder and how
+# it is seen, never from making it look worse. An earlier version sampled
+# drizzle, expired film and phone snapshots, and the feed looked like it.
+# "Saturated" is kept out of every rendering - oversaturation is the first thing
+# that makes an image read as AI.
+#
+# People are phrased positively on purpose. Image models handle negation badly
+# - "no people" reliably produces people - so emptiness is described as a
+# deserted place rather than as an absence.
 
-LIGHT_OPTION_COUNT = 3
-
-
-def get_light_options(count=LIGHT_OPTION_COUNT):
-    return random.sample(LIGHT_CONDITIONS, count)
-
-
-# Composition recipes pair a viewpoint with a plausible focal length, and every
-# one of them is a way professional travel photographers make a place look its
-# most impressive - depth, scale, reflection, leading lines. Offered as a
-# shortlist for the same reason as the light: imposed, they produced viewpoints
-# that can't exist (Mount Misen behind the Miyajima torii, seen from the shore),
-# and the image model invents what it has never seen from that angle.
-FRAMINGS = [
+_LANDSCAPE_FRAMINGS = [
     'grand wide vista from an elevated viewpoint on a 16-35mm lens, layers receding from a detailed foreground to the horizon',
     'low ultra-wide angle on a 14-20mm lens, strong foreground interest close to the camera leading the eye to the subject',
     'aerial drone view from high above, revealing the shape and scale of the place',
@@ -74,46 +65,276 @@ FRAMINGS = [
     'standard 35mm lens at eye level, as a visitor first sees it on arrival, the subject placed on a third',
 ]
 
+_LANDSCAPE_LOOKS = [
+    'high-resolution full-frame mirrorless camera, crisp edge-to-edge detail, natural true-to-life colour',
+    'medium format digital camera, immense fine detail, smooth tonal gradation, rich natural colour',
+    'Fujifilm Velvia slide film, rich clean blues and greens, crisp contrast',
+    'Kodak Portra 400 film, warm soft tones, fine grain',
+    'Kodak Ektar 100 film, vivid but natural colour, ultra-fine grain',
+]
+
+PILLARS = {
+    'nature': {
+        'brief': 'a natural wonder - a landscape, seascape or natural feature unlike anywhere else, with the land itself as the subject',
+        'categories': [
+            "Mountains & High Peaks",
+            "Coastline, Sea Cliffs & Beaches",
+            "Islands, Reefs & Lagoons",
+            "Waterfalls, Rivers & Gorges",
+            "Lakes & Glaciers",
+            "Deserts & Dunes",
+            "Forests, Jungles & Rainforest",
+            "Volcanic & Geothermal Landscapes",
+            "Canyons, Caves & Rock Formations",
+            "Terraced Fields, Plantations & Cultivated Landscapes",
+            "Night Sky over a Landscape",
+        ],
+        'light': [
+            'first light, the sun just clearing the horizon and raking low across the subject',
+            'golden hour, warm low sun lighting the subject from the side',
+            'sunset, the sky lit up with colour in high broken cloud',
+            'soft early morning, mist lying in the valleys and over water',
+            'a clearing storm, shafts of sunlight breaking through dark cloud onto the subject',
+            'bright clear day, deep blue sky, clear true colour in water and foliage',
+            'soft overcast light after rain, wet rock and rich deep greens',
+            'clear night, the Milky Way overhead, the landscape faintly lit by starlight',
+            'fresh snow under a clear sky, crisp cold light',
+            'the aurora overhead, green curtains reflected in the landscape below',
+            'a sea of cloud filling the valleys below, the subject rising clear above it in early light',
+            'warm late afternoon light at the peak of autumn colour',
+            'spring, the landscape in blossom or full fresh green, under soft bright light',
+        ],
+        'framings': _LANDSCAPE_FRAMINGS,
+        'looks': _LANDSCAPE_LOOKS + [
+            'long exposure on a tripod, moving water and cloud smoothed to silk, everything still pin-sharp',
+        ],
+        # A small figure is the most common option: it's what makes a landscape
+        # read as immense rather than as a hill. It only works if it reads at
+        # phone size, hence the open background.
+        'people': [
+            ('the place alone, undisturbed and deserted', 35),
+            ('one small figure, back to the camera, set against open sky, water, sand or snow so it reads clearly, showing the scale of the place', 40),
+            ('a few people far off, small and incidental', 15),
+            ('local people at work in the landscape - a boatman, herders, farmers - absorbed in what they are doing', 10),
+        ],
+    },
+    'city': {
+        'brief': 'a city as a living place - its skyline, streets, rooftops, waterfronts and the life in them. The city itself is the subject, not a single monument in it, and it is a real city or large town, not a village',
+        'categories': [
+            "City Skyline at Night or Blue Hour",
+            "A City from Above - Rooftops, Domes & Street Grids",
+            "Old Town Streets, Alleys & Stairways",
+            "Canals, Harbours & Waterfronts",
+            "Markets, Night Markets & Street Life",
+            "Colourful Neighbourhoods & Painted Houses",
+            "Modern Architecture & Futuristic Cityscapes",
+            "Cities Built on Hillsides, Cliffs or Water",
+        ],
+        'light': [
+            'blue hour, a deep blue sky with every window and street lamp lit',
+            'night after rain, the wet streets mirroring the glow of lanterns, shop windows and coloured lights',
+            'golden hour, low warm sun lighting the facades and catching the tops of the towers',
+            'sunset behind the skyline, the buildings dark against a sky full of colour',
+            'first light, the streets still quiet and the facades warming in the low sun',
+            'low cloud drifting through the towers, their tops breaking through into clear sky',
+            'clear night, the whole city lit up beneath a dark sky',
+            'snow falling at night, lit by warm street lamps and windows',
+            'bright clear morning, deep blue sky and true colour on painted walls',
+            'dusk, lanterns and string lights coming on along the street',
+        ],
+        'framings': [
+            'the skyline seen across water from the far shore, its lights reflected in the water',
+            'from a high viewpoint over the rooftops on a 24-70mm lens, the roofscape running to the horizon',
+            'aerial drone view looking down into the street grid, canals or tangle of rooftops',
+            'street level on a 35mm lens, looking along a street, canal or stairway that leads the eye deep into the scene',
+            'telephoto compression on a 70-200mm lens, buildings stacked one behind another up a hillside or along the water',
+            'looking up from the street between tall buildings, their lines converging into the sky',
+            'from a rooftop or balcony looking down into the life of the street below',
+            'framed by an archway, a window or the gap between two buildings',
+        ],
+        'looks': [
+            'high-resolution full-frame mirrorless camera, crisp detail, true-to-life colour',
+            'CineStill 800T film, tungsten-balanced colour, soft halation around the lights',
+            'Kodak Portra 400 film, warm soft tones, fine grain',
+            'Kodak Ektar 100 film, vivid but natural colour, ultra-fine grain',
+            'long exposure on a tripod, traffic drawn into trails of light and water smoothed, every building pin-sharp',
+        ],
+        'people': [
+            ('the everyday life of the city - people walking, cycling, trading and talking, as many as there really would be at that place and hour', 45),
+            ('the streets almost empty at a quiet hour, one or two people passing through', 20),
+            ('one local in the foreground - a vendor, a cyclist, someone climbing the steps - small enough that the city still fills the frame', 15),
+            ('the city seen from above or from afar, its people too small to pick out', 20),
+        ],
+        # Countries with no city or town that would carry a city post. Drawn
+        # for one, the scout reaches for the only street there is, or drifts
+        # back into a landscape.
+        'skip_countries': {
+            "Kiribati", "Marshall Islands", "Micronesia", "Nauru", "Palau",
+            "Solomon Islands", "Tuvalu", "Tonga", "Samoa", "Vanuatu",
+            "Central African Republic", "Chad", "South Sudan",
+        },
+    },
+    'landmark': {
+        'brief': 'one great built wonder - a monument, temple, castle, palace, ruin or bridge - as the unmistakable hero of the photograph',
+        'categories': [
+            "Iconic Landmark or Monument",
+            "Ancient Ruins & Archaeological Sites",
+            "Temples, Mosques, Cathedrals & Monasteries",
+            "Palaces, Castles & Fortresses",
+            "Bridges, Roads & Railways through Dramatic Scenery",
+            "Grand Interiors - Domes, Halls, Libraries & Stations",
+        ],
+        'light': [
+            'first light, the sun just clearing the horizon and raking across the stone',
+            'golden hour, warm low sun lighting the building from the side',
+            'sunset, the sky lit up with colour in high broken cloud',
+            'blue hour, the building floodlit against a deep blue sky',
+            'soft early morning, mist lying around its base',
+            'a clearing storm, sunlight breaking through dark cloud onto the building',
+            'bright clear day, deep blue sky, clear true colour in stone and tile',
+            'fresh snow on the roofs and grounds under a clear sky',
+            'clear night, the Milky Way above a remote ruin',
+            'sunlight falling in shafts through high windows into the interior',
+        ],
+        'framings': _LANDSCAPE_FRAMINGS + [
+            'perfect symmetry, looking straight down the central axis of the building',
+            'inside, looking up into the dome or vault from beneath it',
+        ],
+        'looks': _LANDSCAPE_LOOKS,
+        'people': [
+            ('the place alone, undisturbed and deserted', 30),
+            ('one small figure, back to the camera, showing the scale of the building', 30),
+            ('a few people far off, small and incidental', 20),
+            ('the people it was built for at the heart of the scene - pilgrims, monks, worshippers - absorbed in what they are doing', 20),
+        ],
+    },
+    'spectacle': {
+        'brief': 'something extraordinary that happens or can be found here - a festival, a natural phenomenon at its peak, a wildlife spectacle, a shipwreck, an abandoned or surreal place, a living tradition. The photograph that makes people ask "is that real?" - and it is: real, documented, and something a photographer could actually witness there',
+        'categories': [
+            "Festivals, Processions & Celebrations",
+            "Natural Phenomena at Their Peak - bioluminescence, fireflies, desert blooms, flowing lava, erupting geysers, ice caves",
+            "Wildlife Spectacles - migrations, vast flocks and herds, breaching whales",
+            "Shipwrecks, Sunken Wonders & Underwater Worlds",
+            "Abandoned, Overgrown & Surreal Places",
+            "Living Traditions - crafts, ways of life and ways of travel still practised",
+            "Engineering Feats & Extreme Structures",
+        ],
+        'light': [
+            'night, the scene lit by its own light - fire, lanterns, lava or glowing water',
+            'blue hour, a deep blue sky and the first lights of the evening',
+            'golden hour, warm low sun lighting the scene from the side',
+            'first light, mist still lying low over the scene',
+            'bright clear day, deep blue sky and true colour',
+            'a clearing storm, shafts of sunlight breaking through dark cloud',
+            'underwater, sunlight falling in shafts through clear blue water',
+            'clear night, the Milky Way overhead',
+            'soft overcast light, rich true colour with nothing burnt out',
+        ],
+        'framings': [
+            'in among it at eye level on a 24-35mm lens, the action filling the frame',
+            'from an elevated viewpoint on a 16-35mm lens, showing the whole scene and its scale',
+            'aerial drone view from high above, revealing the shape and scale of the scene',
+            'telephoto compression on a 70-200mm lens, the subject stacked against what lies behind it',
+            'low ultra-wide angle on a 14-20mm lens, strong foreground interest close to the camera leading the eye to the subject',
+            'underwater wide angle on a 14-16mm lens, the subject looming out of the blue',
+            'framed by a natural or architectural opening - an arch, a doorway, a broken window, overhanging branches',
+        ],
+        'looks': _LANDSCAPE_LOOKS + [
+            'CineStill 800T film, tungsten-balanced colour, soft halation around the lights',
+        ],
+        'people': [
+            ('the people at the heart of it - festival-goers, herders, fishermen, divers - absorbed in what they are doing', 45),
+            ('the scene alone, undisturbed and deserted', 30),
+            ('one small figure watching, back to the camera, showing the scale of it', 25),
+        ],
+    },
+}
+
+_CATEGORY_PILLAR = {category: name for name, pillar in PILLARS.items()
+                    for category in pillar['categories']}
+
+RECENT_CATEGORY_WINDOW = 12
+
+
+def pillar_of(entry):
+    """The pillar a history entry belongs to, worked out from its shot
+    category for posts made before pillars were recorded."""
+    return entry.get("pillar") or _CATEGORY_PILLAR.get(entry.get("shot_category"))
+
+
+def get_pillar(history):
+    """The kind of post to make next, and the round it belongs to.
+
+    Posts go in rounds of four, one of each kind in a random order - four posts
+    is a week of the schedule. Weighting the draw towards whichever kind was
+    falling behind still gave runs like spectacle, landmark, spectacle with no
+    city at all; dealing from a deck can't. A new round never opens with the
+    kind that closed the last one.
+    """
+    last = history[-1] if history else {}
+    current = last.get("pillar_round")
+
+    used = {entry.get("pillar") for entry in history
+            if current is not None and entry.get("pillar_round") == current}
+    remaining = [name for name in PILLARS if name not in used]
+
+    if current is not None and remaining:
+        return random.choice(remaining), current
+
+    # Before rounds were recorded there's no round to finish, so one starts
+    fresh = [name for name in PILLARS if name != pillar_of(last)]
+    return random.choice(fresh), 0 if current is None else current + 1
+
+
+CATEGORY_OPTION_COUNT = 3
+LIGHT_OPTION_COUNT = 3
 FRAMING_OPTION_COUNT = 3
 
 
-def get_framing_options(count=FRAMING_OPTION_COUNT):
-    return random.sample(FRAMINGS, count)
+def get_category_options(pillar, recent_categories=(), count=CATEGORY_OPTION_COUNT):
+    """A shortlist of categories for the scout, preferring ones not used lately.
+
+    Offered as a shortlist rather than imposed for the same reason as the light:
+    a single category is often one the country has nothing good in, and the
+    scout would rather fill it literally than substitute - abandoned places in
+    the Netherlands came back as a disused runway in a field.
+    """
+    recent = set(recent_categories)
+    fresh = [category for category in PILLARS[pillar]['categories'] if category not in recent]
+    stale = [category for category in PILLARS[pillar]['categories'] if category in recent]
+    random.shuffle(fresh)
+    random.shuffle(stale)
+
+    return (fresh + stale)[:count]
 
 
-# Rendering styles that read as a professional photograph with natural colour.
-# Expired film, B&W, smartphone and instant-film looks are gone - they made a
-# feed of wonders look like a feed of mistakes. "Saturated" is kept out of every
-# option: oversaturation is the first thing that makes an image read as AI.
-def get_medium_look():
-    looks = [
-        'high-resolution full-frame mirrorless camera, crisp edge-to-edge detail, natural true-to-life colour',
-        'medium format digital camera, immense fine detail, smooth tonal gradation, rich natural colour',
-        'Fujifilm Velvia slide film, rich clean blues and greens, crisp contrast',
-        'Kodak Portra 400 film, warm soft tones, fine grain',
-        'Kodak Ektar 100 film, vivid but natural colour, ultra-fine grain',
-        'long exposure on a tripod, moving water and cloud smoothed to silk, everything still pin-sharp',
-    ]
-    return random.choice(looks)
+def match_category(name, options):
+    """The shortlisted category the scout meant. It often drops the examples
+    after the dash ("Wildlife Spectacles"), and the history only damps a
+    category it can match exactly."""
+    name = str(name or "").strip()
+    for option in options:
+        if name.lower() in (option.lower(), option.split(" - ")[0].lower()):
+            return option
+
+    return name or options[0]
 
 
-# Phrased positively on purpose. Image models handle negation badly - "no
-# people" reliably produces people - so emptiness is described as a deserted place
-# rather than as an absence. A small figure is the most common option: it's what
-# makes a landscape read as immense rather than as a hill, and posts with a
-# person in them get liked more. It only works if it reads at phone size, hence
-# the open background.
-HUMAN_PRESENCE = [
-    ('the place alone, undisturbed and deserted', 30),
-    ('one small figure, back to the camera, set against open sky, water, sand or snow so it reads clearly, showing the scale of the place', 40),
-    ('a few people far off, small and incidental', 15),
-    ('local people at the heart of the scene - a boatman, pilgrims, herders, festival-goers - absorbed in what they are doing', 15),
-]
+def get_light_options(pillar, count=LIGHT_OPTION_COUNT):
+    return random.sample(PILLARS[pillar]['light'], count)
 
 
-def get_human_presence():
-    presence = [option for option, _ in HUMAN_PRESENCE]
-    weights = [weight for _, weight in HUMAN_PRESENCE]
+def get_framing_options(pillar, count=FRAMING_OPTION_COUNT):
+    return random.sample(PILLARS[pillar]['framings'], count)
+
+
+def get_medium_look(pillar):
+    return random.choice(PILLARS[pillar]['looks'])
+
+
+def get_human_presence(pillar):
+    presence = [option for option, _ in PILLARS[pillar]['people']]
+    weights = [weight for _, weight in PILLARS[pillar]['people']]
     return random.choices(presence, weights=weights, k=1)[0]
 
 
@@ -131,32 +352,6 @@ def get_fame_tier():
     tiers = [tier for tier, _ in FAME_TIERS]
     weights = [weight for _, weight in FAME_TIERS]
     return random.choices(tiers, weights=weights, k=1)[0]
-
-
-def get_shot_category():
-    shot_categories = [
-        "Iconic Landmark or Monument",
-        "Ancient Ruins & Archaeological Sites",
-        "Temples, Mosques, Cathedrals & Monasteries",
-        "Palaces, Castles & Fortresses",
-        "Historic Old Town or Village",
-        "City Skyline or Waterfront",
-        "Mountains & High Peaks",
-        "Coastline, Sea Cliffs & Beaches",
-        "Islands, Reefs & Lagoons",
-        "Waterfalls, Rivers & Gorges",
-        "Lakes & Glaciers",
-        "Deserts & Dunes",
-        "Forests, Jungles & Rainforest",
-        "Volcanic & Geothermal Landscapes",
-        "Canyons, Caves & Rock Formations",
-        "Terraced Fields, Plantations & Cultivated Landscapes",
-        "Wildlife in its Natural Habitat",
-        "Festivals & Celebrations",
-        "Night Sky over a Landscape",
-        "Bridges, Roads & Railways through Dramatic Scenery",
-    ]
-    return random.choice(shot_categories)
 
 
 # --- Caption axes -----------------------------------------------------------
@@ -226,9 +421,10 @@ POPULAR_COUNTRIES = {
 POPULAR_COUNTRY_WEIGHT = 5
 
 
-def get_random_country(fileName, recent_countries=None):
+def get_random_country(fileName, recent_countries=None, skip=()):
     with open(fileName, 'r') as file:
-        countries = [line.strip() for line in file if line.strip()]
+        countries = [line.strip() for line in file
+                     if line.strip() and line.strip() not in skip]
 
     recent_countries = set(recent_countries or [])
 
@@ -324,6 +520,11 @@ def save_history_entry(entry, history_file=HISTORY_FILE):
 
 def get_recent_countries(history, window=RECENT_COUNTRY_WINDOW):
     return [entry.get("country") for entry in history[-window:] if entry.get("country")]
+
+
+def get_recent_categories(history, window=RECENT_CATEGORY_WINDOW):
+    return [entry.get("shot_category") for entry in history[-window:]
+            if entry.get("shot_category")]
 
 
 def get_recent_caption_angles(history, window=RECENT_ANGLE_WINDOW):
